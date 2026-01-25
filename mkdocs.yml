@@ -146,6 +146,10 @@ nav:
   - 'Examples':
       - 'Overview': examples_README.md
       - 'Confidence Weighting': examples_confidence_weighting_README.md
+  - 'Setup Guides':
+      - 'Overview': guides/README.md
+      - 'MkDocs + MathJax Setup': guides/mkdocs_mathjax_setup_guide.md
+      - 'Quick Reference': guides/mkdocs_quick_reference.md
 
 # Extra configuration
 extra:
