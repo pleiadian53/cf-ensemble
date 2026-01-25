@@ -1,15 +1,11 @@
 # CF-Ensemble: Meta-learning via Latent-Factor-Based Collaborative Filtering
 
-<div align="center">
-
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Tests](https://img.shields.io/badge/tests-134%20passing-brightgreen.svg)]()
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 **A breakthrough framework for ensemble classification using collaborative filtering**
-
-</div>
 
 ---
 
@@ -49,6 +45,53 @@ Classification in biomedical domains faces unique challenges:
 2. 🔬 **Discover patterns** in how classifiers perform
 3. 🧭 **Interpret results** through latent factor analysis
 4. 🎯 **Identify challenging** instances automatically
+
+---
+
+## 📊 Basic Workflow
+
+### From Base Classifiers to Final Prediction
+
+```mermaid
+flowchart TD
+    subgraph group1["📥 Stage 1: Base Prediction & Transformation"]
+        A["🤖 Base Classifiers<br/><small>Diverse heterogeneous models</small>"]
+        B["📊 Prediction Matrix R<br/><small>m classifiers × n instances</small>"]
+        C["✨ CF Transformation<br/><small>Matrix factorization</small>"]
+    end
+    
+    subgraph group2["📤 Stage 2: Reconstruction & Integration"]
+        D["🔄 Reconstructed Matrix P<br/><small>Improved probability estimates</small>"]
+        E["🎯 Ensemble Integration<br/><small>Weighted aggregation</small>"]
+        F["📈 Final Prediction<br/><small>Class probabilities</small>"]
+    end
+    
+    A --> B
+    B --> C
+    C -.->|"Matrix<br/>Factorization"| D
+    D --> E
+    E --> F
+    
+    style A fill:#E3F2FD,stroke:#1976D2,stroke-width:3px,color:#1A237E
+    style B fill:#FFF3E0,stroke:#F57C00,stroke-width:3px,color:#E65100
+    style C fill:#C8E6C9,stroke:#388E3C,stroke-width:4px,color:#1B5E20
+    style D fill:#FFF3E0,stroke:#F57C00,stroke-width:3px,color:#E65100
+    style E fill:#B3E5FC,stroke:#0288D1,stroke-width:4px,color:#01579B
+    style F fill:#F3E5F5,stroke:#7B1FA2,stroke-width:3px,color:#4A148C
+    
+    style group1 fill:#BEBEBE,stroke:#CED4DA,stroke-width:2px,color:#495057
+    style group2 fill:#BEBEBE,stroke:#CED4DA,stroke-width:2px,color:#495057
+```
+
+Or see the original workflow diagram with the probability matrix view:
+
+![CF-Ensemble Workflow](https://user-images.githubusercontent.com/1761957/188764919-f2217d9f-c451-4c51-9b34-cde9f8cdc7b4.png)
+
+The process consists of three stages:
+
+1. **🏗️ Ensemble Generation**: Train diverse base classifiers
+2. **🔄 Ensemble Transformation** (⭐ *Our Innovation*): Apply CF to transform predictions
+3. **🎯 Ensemble Integration**: Combine transformed predictions
 
 ---
 
@@ -163,7 +206,7 @@ P = trainer.predict(R)  # Reconstructed probabilities
 
 ## 💡 Examples
 
-See [examples/](examples/) directory for complete runnable examples:
+See [Examples](examples_README.md) for complete runnable examples:
 
 ### Confidence Weighting
 - `quality_threshold_experiment.py` - Validate when confidence weighting helps
@@ -177,7 +220,7 @@ See [examples/](examples/) directory for complete runnable examples:
 
 ## 🤝 Contributing
 
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions welcome! Please open an issue or pull request on GitHub.
 
 ---
 

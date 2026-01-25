@@ -251,11 +251,6 @@ print(f"PR-AUC: {pr_auc:.3f} ({pr_auc/0.05:.1f}x random)")
 - **[When to Use Confidence Weighting](confidence_weighting/when_to_use_confidence_weighting.md)** - Decision trees
 - **[Experimental Results](../RESULTS_2026-01-24.md)** - Validation details
 
-### Session Notes
-
-- **[Imbalance Comparison](../../dev/sessions/2026-01-24_imbalance_comparison.md)** - Full analysis
-- **[Session Summary](../../dev/sessions/2026-01-24_session_summary.md)** - Complete overview
-
 ### Code Examples
 
 - **`examples/confidence_weighting/quality_threshold_experiment.py`** - Run experiments

@@ -376,9 +376,8 @@ def solve_quadratic(a, b, c):
 
 ## See Also
 
-- [Installation](installation.md)
-- [API Reference](api.md)
-```
+- Installation Guide (see main documentation)
+- API Reference (see main documentation)
 
 ---
 

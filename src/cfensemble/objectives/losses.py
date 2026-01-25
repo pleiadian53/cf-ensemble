@@ -1,10 +1,31 @@
 """
 Loss Functions for CF-Ensemble
 
-This module implements the core loss functions:
-1. Reconstruction loss: Weighted matrix factorization
-2. Supervised loss: Cross-entropy on aggregated predictions
-3. Combined loss: The KD-inspired objective combining both
+This module implements the core loss functions for the combined KD-inspired objective:
+
+    L_CF = ρ·L_recon(X, Y) + (1-ρ)·L_sup(X, Y, θ)
+
+Components:
+1. Reconstruction loss: L_recon = Σ c_ui(r_ui - x_u^T y_i)² + λ(||X||² + ||Y||²)
+2. Supervised loss: L_sup = Σ_{i∈L} CE(y_i, g_θ(X^T y_i))
+3. Combined loss: Weighted combination with trade-off parameter ρ
+
+IMPORTANT - Two Ways to Optimize:
+
+1. **ALS-based (CFEnsembleTrainer):**
+   - Approximates L_CF via label-aware confidence weights
+   - Fast (closed-form) but approximate
+   - See: docs/methods/als_mathematical_derivation.md
+
+2. **PyTorch-based (CFEnsemblePyTorchTrainer):**
+   - Directly optimizes L_CF via backprop
+   - Exact gradients but slower on CPU
+   - See: docs/methods/als_vs_pytorch.md
+
+The functions in this module compute the TRUE combined loss, used for:
+- Monitoring training progress (both ALS and PyTorch)
+- Computing exact gradients (PyTorch backprop)
+- Validation and comparison
 
 Based on: docs/methods/cf_ensemble_optimization_objective_tutorial.md
 """

@@ -174,10 +174,7 @@ NEW! Comprehensive mathematical derivation showing how we arrive at the ALS upda
 
 ### Historical Context
 
-- **[cf_ensemble_optimization_objective.md](../../dev/methods/cf_ensemble_optimization_objective.md)** *(dev notes)*: Original Q&A-style notes that led to the breakthrough
-- **[knowledge_distillation.md](../../dev/methods/knowledge_distillation.md)** *(dev notes)*: Initial exploration of KD concepts
-
-*Note: dev/ documents are private development notes, not public documentation*
+See the research papers below for the original development of these concepts.
 
 ### Research Papers
 
@@ -271,8 +268,7 @@ If you're already familiar with collaborative filtering and want to dive straigh
 For technical questions or implementation discussions, refer to:
 - Implementation: `src/cfensemble/` source code
 - Examples: `notebooks/` Jupyter notebooks
-- Issues: GitHub issues (if available)
-- Development notes: `dev/methods/` (private)
+- Issues: GitHub issues
 
 ---
 

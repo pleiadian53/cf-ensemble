@@ -6,7 +6,7 @@
 
 ## Introduction
 
-In the [CF-Ensemble optimization tutorial](cf_ensemble_optimization_objective_tutorial.md), we introduced confidence weights $c_{ui}$ that control how much we trust each classifier's prediction for each data point. But we left open the question: **How should we set these weights?**
+In the [CF-Ensemble optimization tutorial](../cf_ensemble_optimization_objective_tutorial.md), we introduced confidence weights $c_{ui}$ that control how much we trust each classifier's prediction for each data point. But we left open the question: **How should we set these weights?**
 
 This tutorial explores a sophisticated approach: **learning a polarity model** that predicts whether each cell $(u,i)$ in the probability matrix corresponds to a correct or incorrect prediction. This provides:
 1. **Massive supervision**: $m \times |\mathcal{L}|$ cell-level training examples instead of just $|\mathcal{L}|$ point-level examples
@@ -730,4 +730,4 @@ Your instinct was correct: "this makes CF ensemble learning too complex." The re
 
 ---
 
-**Next**: See [Implementation Roadmap](../../IMPLEMENTATION_ROADMAP.md) for how to add reliability weighting to your CF-Ensemble pipeline.
+**Next**: See the [Examples](../../examples_README.md) for how to add reliability weighting to your CF-Ensemble pipeline.

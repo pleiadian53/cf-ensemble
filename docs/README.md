@@ -45,4 +45,4 @@ The `references/` subdirectory contains reference materials and papers.
 
 ## Development Notes
 
-For development notes, temporary documentation, and learning materials, see the `dev/` directory at the project root.
+For additional documentation and learning materials, see the methods and guides sections.

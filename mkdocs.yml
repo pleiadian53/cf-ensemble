@@ -141,8 +141,27 @@ nav:
           - 'Objective Tutorial': methods/cf_ensemble_optimization_objective_tutorial.md
           - 'ALS Derivation': methods/als_mathematical_derivation.md
           - 'ALS vs PyTorch': methods/als_vs_pytorch.md
+          - 'Class-Weighted Gradients': methods/optimization/class_weighted_gradients.md
           - 'Hyperparameter Tuning': methods/hyperparameter_tuning.md
       - 'Knowledge Distillation': methods/knowledge_distillation_tutorial.md
+  - 'Failure Modes':
+      - 'Overview': failure_modes/README.md
+      - 'Aggregator Weight Collapse': failure_modes/aggregator_weight_collapse.md
+      - 'Transductive vs Inductive': failure_modes/transductive_vs_inductive.md
+      - 'ALS Approximation': failure_modes/als_approximation_vs_exact_optimization.md
+      - 'Optimization Instability': failure_modes/optimization_instability.md
+  - 'Notebooks':
+      - 'Overview': notebooks/README.md
+      - 'Collaborative Filtering': notebooks/01_collaborative_filtering/Demo-Part1-CF_with_ALS.ipynb
+      - 'Loss Functions': notebooks/02_loss_functions/Demo-Part2-The_Role_of_Loss_Function_in_CF_Ensemble.ipynb
+      - 'kNN Ensemble': notebooks/03_knn_ensemble/Demo-Part3-CF_Ensemble_with_kNNs.ipynb
+      - 'Stacking':
+          - 'CF Stacker': notebooks/04_stacking/Demo-Part4-CF_Stacker.ipynb
+          - 'Stacking Demo': notebooks/04_stacking/demo-stacking.ipynb
+      - 'Probability Filtering':
+          - 'Main Demo': notebooks/05_probability_filtering/Demo-Part5-CF_Ensemble_via_Probability_Filtering.ipynb
+          - 'Alternative Representations': notebooks/05_probability_filtering/Demo-Part5a-Alternative_Data_Representations_for_Probability_Filtering.ipynb
+          - 'Custom Loss': notebooks/05_probability_filtering/Demo-Part5b-Probability_Filtering_via_Custom_Loss.ipynb
   - 'Examples':
       - 'Overview': examples_README.md
       - 'Confidence Weighting': examples_confidence_weighting_README.md

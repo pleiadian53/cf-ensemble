@@ -1,13 +1,31 @@
 """
-Main training loop for CF-Ensemble with combined KD-inspired objective.
+CF-Ensemble Trainer with ALS Optimization (APPROXIMATION)
 
-This module implements the CFEnsembleTrainer class which orchestrates:
-1. Alternating Least Squares (ALS) updates for X and Y
-2. Aggregator parameter updates
-3. Combined loss monitoring (reconstruction + supervised)
+This module implements CFEnsembleTrainer using Alternating Least Squares (ALS).
 
-The key innovation is balancing matrix reconstruction with supervised learning:
-    L = ρ·L_recon(X,Y) + (1-ρ)·L_sup(X,Y,θ)
+IMPORTANT - This is an APPROXIMATION of the true combined loss:
+    L_CF = ρ·L_recon(X,Y) + (1-ρ)·L_sup(X,Y,θ)
+
+Why approximation?
+- ALS only optimizes QUADRATIC objectives (closed-form solutions)
+- Supervised loss L_sup contains sigmoid + log (non-quadratic)
+- Cannot derive closed-form ALS for full combined loss
+
+Approximation strategy:
+1. Use label-aware confidence: c_ui upweights predictions matching labels
+2. ALS minimizes: Σ c_ui(r_ui - x_u^T y_i)² (indirectly encourages supervision)
+3. Separate aggregator gradient descent (coordinates with ALS)
+
+This is analogous to how VAE uses reparameterization trick + gradient descent,
+not closed-form, even though both have reconstruction + regularization terms.
+
+For EXACT optimization: Use CFEnsemblePyTorchTrainer (recommended).
+
+Trade-offs:
++ Fast per iteration (O(d³) closed-form)
++ Works without autodiff framework
+- Approximate (not exact combined gradient)
+- Potential alternating optimization instability
 """
 
 import numpy as np
@@ -82,6 +100,10 @@ class CFEnsembleTrainer:
         aggregator_lr: float = 0.01,
         max_iter: int = 50,
         tol: float = 1e-4,
+        use_label_aware_confidence: bool = True,
+        label_aware_alpha: float = 1.0,
+        freeze_aggregator_iters: int = 0,
+        use_class_weights: bool = True,
         verbose: bool = True,
         random_seed: Optional[int] = None
     ):
@@ -103,6 +125,22 @@ class CFEnsembleTrainer:
             aggregator_lr: Learning rate for aggregator updates
             max_iter: Maximum number of ALS iterations
             tol: Convergence tolerance (stop if |Δloss| < tol)
+            use_label_aware_confidence: Whether to use label-aware confidence
+                                       True: Upweight predictions matching labels (approximate supervision)
+                                       False: Use certainty-based confidence only
+                                       Recommended: True for better approximation
+            label_aware_alpha: Strength of label-aware weighting (α ≥ 0)
+                              0.0 = no supervision signal
+                              1.0 = moderate supervision (recommended)
+                              >1.0 = strong supervision emphasis
+            freeze_aggregator_iters: Number of initial iterations to freeze aggregator
+                                    0 = no freezing (default)
+                                    20-100 = recommended range to let X,Y stabilize first
+                                    Helps prevent aggregator weight collapse with imbalanced data
+            use_class_weights: Whether to use class-weighted gradients in aggregator
+                             True: Weight instances by inverse class frequency (recommended)
+                             False: Standard unweighted gradients
+                             Essential for imbalanced data to prevent majority class domination
             verbose: Whether to print training progress
             random_seed: Random seed for reproducibility
         
@@ -127,6 +165,10 @@ class CFEnsembleTrainer:
         self.tol = tol
         self.verbose = verbose
         self.aggregator_lr = aggregator_lr
+        self.use_label_aware_confidence = use_label_aware_confidence
+        self.label_aware_alpha = label_aware_alpha
+        self.freeze_aggregator_iters = freeze_aggregator_iters
+        self.use_class_weights = use_class_weights
         
         # Store random seed for reproducibility
         self.random_seed = random_seed
@@ -229,6 +271,15 @@ class CFEnsembleTrainer:
             'sup_weighted': []
         }
         
+        # Compute label-aware confidence if enabled
+        if self.use_label_aware_confidence and np.sum(labeled_idx) > 0:
+            C = ensemble_data.compute_label_aware_confidence(
+                alpha=self.label_aware_alpha
+            )
+            if self.verbose:
+                print(f"Using label-aware confidence (α={self.label_aware_alpha:.2f})")
+        # else: C is already set from ensemble_data.C
+        
         prev_loss = np.inf
         
         if self.verbose:
@@ -237,6 +288,11 @@ class CFEnsembleTrainer:
             print(f"  Labeled: {np.sum(labeled_idx)} ({100*np.mean(labeled_idx):.1f}%)")
             print(f"  Latent dim: {self.latent_dim}")
             print(f"  ρ={self.rho:.2f}, λ={self.lambda_reg:.4f}")
+            print(f"  Confidence: {'Label-aware' if self.use_label_aware_confidence else 'Certainty-based'}")
+            if self.freeze_aggregator_iters > 0:
+                print(f"  Aggregator: Frozen for first {self.freeze_aggregator_iters} iterations")
+            if self.use_class_weights:
+                print(f"  Class weighting: Enabled (inverse frequency)")
             print()
         
         # Main training loop
@@ -252,10 +308,12 @@ class CFEnsembleTrainer:
             )
             
             # 3. Update aggregator parameters (fix X, Y)
-            if np.sum(labeled_idx) > 0:  # Only if we have labels
+            # Skip updates during freeze period to let X, Y stabilize
+            if iteration >= self.freeze_aggregator_iters and np.sum(labeled_idx) > 0:
                 self.aggregator.update(
                     self.X, self.Y, labeled_idx, labels,
-                    lr=self.aggregator_lr
+                    lr=self.aggregator_lr,
+                    use_class_weights=self.use_class_weights
                 )
             
             # 4. Compute combined loss

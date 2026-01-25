@@ -6,7 +6,7 @@ Examples demonstrating confidence weighting strategies and learned reliability w
 
 ## Examples in This Directory
 
-### 1. [`phase3_confidence_weighting.py`](phase3_confidence_weighting.py) ⭐
+### 1. `phase3_confidence_weighting.py` ⭐
 
 **Comprehensive demonstration** of all confidence strategies.
 
@@ -28,11 +28,11 @@ python examples/confidence_weighting/phase3_confidence_weighting.py --output-dir
 
 **Output**: Performance comparison table + ROC-AUC metrics
 
-**Related docs**: [`docs/methods/confidence_weighting/`](../../docs/methods/confidence_weighting/)
+**Related docs**: [Confidence Weighting Methods](methods/confidence_weighting/README.md)
 
 ---
 
-### 2. [`reliability_model_demo.py`](reliability_model_demo.py) 🎯
+### 2. `reliability_model_demo.py` 🎯
 
 **Deep dive** into the reliability weight model.
 
@@ -54,11 +54,11 @@ python examples/confidence_weighting/reliability_model_demo.py --output-dir resu
 
 **Output**: 6 PNG figures + analysis summary
 
-**Related docs**: [`docs/methods/confidence_weighting/polarity_models_tutorial.md`](../../docs/methods/confidence_weighting/polarity_models_tutorial.md)
+**Related docs**: [`docs/methods/confidence_weighting/polarity_models_tutorial.md`](methods/confidence_weighting/polarity_models_tutorial.md)
 
 ---
 
-### 3. [`quality_threshold_experiment.py`](quality_threshold_experiment.py) 🔬
+### 3. `quality_threshold_experiment.py` 🔬
 
 **Research experiment** validating quality thresholds.
 
@@ -86,7 +86,7 @@ python examples/confidence_weighting/quality_threshold_experiment.py --trials 3
 
 **Purpose**: Validate hypothesized thresholds (60% min, 70-80% sweet spot)
 
-**Related docs**: [`docs/methods/confidence_weighting/base_classifier_quality_analysis.md`](../../docs/methods/confidence_weighting/base_classifier_quality_analysis.md)
+**Related docs**: [`docs/methods/confidence_weighting/base_classifier_quality_analysis.md`](methods/confidence_weighting/base_classifier_quality_analysis.md)
 
 ---
 
@@ -94,9 +94,9 @@ python examples/confidence_weighting/quality_threshold_experiment.py --trials 3
 
 ### Beginner (First time with confidence weighting)
 
-1. Read [`docs/methods/confidence_weighting/README.md`](../../docs/methods/confidence_weighting/README.md) (10 min)
+1. Read [`docs/methods/confidence_weighting/README.md`](methods/confidence_weighting/README.md) (10 min)
 2. Run `phase3_confidence_weighting.py` to see all strategies (30 sec)
-3. Read [`docs/methods/confidence_weighting/polarity_models_tutorial.md`](../../docs/methods/confidence_weighting/polarity_models_tutorial.md) (40 min)
+3. Read [`docs/methods/confidence_weighting/polarity_models_tutorial.md`](methods/confidence_weighting/polarity_models_tutorial.md) (40 min)
 
 ### Intermediate (Understanding learned reliability)
 
@@ -106,7 +106,7 @@ python examples/confidence_weighting/quality_threshold_experiment.py --trials 3
 
 ### Advanced (Research & validation)
 
-1. Read [`docs/methods/confidence_weighting/theory_vs_empirics.md`](../../docs/methods/confidence_weighting/theory_vs_empirics.md) (15 min)
+1. Read [`docs/methods/confidence_weighting/theory_vs_empirics.md`](methods/confidence_weighting/theory_vs_empirics.md) (15 min)
 2. Run `quality_threshold_experiment.py` to validate thresholds (15 min)
 3. Analyze results in `results/quality_threshold/`
 4. Compare with your own datasets
@@ -189,10 +189,10 @@ print_diagnosis(recommendation)
 
 | Topic | Document | Time |
 |-------|----------|------|
-| Overview | [`confidence_weighting/README.md`](../../docs/methods/confidence_weighting/README.md) | 5 min |
-| Quality Thresholds | [`base_classifier_quality_analysis.md`](../../docs/methods/confidence_weighting/base_classifier_quality_analysis.md) | 30 min |
-| Theory vs Empirics | [`theory_vs_empirics.md`](../../docs/methods/confidence_weighting/theory_vs_empirics.md) | 15 min |
-| Reliability Learning | [`polarity_models_tutorial.md`](../../docs/methods/confidence_weighting/polarity_models_tutorial.md) | 40 min |
+| Overview | [`confidence_weighting/README.md`](methods/confidence_weighting/README.md) | 5 min |
+| Quality Thresholds | [`base_classifier_quality_analysis.md`](methods/confidence_weighting/base_classifier_quality_analysis.md) | 30 min |
+| Theory vs Empirics | [`theory_vs_empirics.md`](methods/confidence_weighting/theory_vs_empirics.md) | 15 min |
+| Reliability Learning | [`polarity_models_tutorial.md`](methods/confidence_weighting/polarity_models_tutorial.md) | 40 min |
 
 ---
 

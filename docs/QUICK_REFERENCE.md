@@ -291,8 +291,8 @@ We factorize the ensemble's probability matrix to discover latent structure, whi
 
 - [Knowledge Distillation Tutorial](methods/knowledge_distillation_tutorial.md)
 - [CF-Ensemble Optimization Tutorial](methods/cf_ensemble_optimization_objective_tutorial.md)
-- [Implementation Roadmap](../IMPLEMENTATION_ROADMAP.md)
-- [Original Research PDFs](.)
+- [Class-Weighted Gradients](methods/optimization/class_weighted_gradients.md)
+- [Failure Modes](failure_modes/README.md)
 
 ---
 

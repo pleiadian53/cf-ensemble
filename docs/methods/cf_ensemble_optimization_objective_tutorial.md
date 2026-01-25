@@ -340,49 +340,144 @@ This is your "TP/TN amplification, FP/FN suppression" idea, formalized.
 
 ---
 
-## 10. Optimization: Alternating Least Squares (ALS)
+## 10. Optimization: Two Approaches
 
-### The ALS Framework
+### The Challenge: Non-Quadratic Combined Loss
 
-With reconstruction term in quadratic form, we can derive closed-form updates by alternating:
+Our combined objective is:
+$$\mathcal{L}_{\text{CF}} = \rho \cdot \underbrace{\sum c_{ui}(r_{ui} - x_u^\top y_i)^2}_{\text{quadratic}} + (1-\rho) \cdot \underbrace{\sum CE(y_i, g_\theta(X^\top y_i))}_{\text{NON-quadratic}}$$
+
+**The problem:**
+- Reconstruction term is quadratic → Closed-form ALS possible
+- Supervised term contains $\sigma(\cdot)$ and $\log(\cdot)$ → **No closed-form solution**
+
+**Conclusion:** Cannot derive closed-form ALS for the full combined loss.
+
+**Analogy:** Like VAE or KD, modern combined objectives require gradient descent, not closed-form.
+
+### Approach 1: ALS with Label-Aware Confidence (Fast Approximation)
+
+**Strategy:** Approximate the combined loss by encoding supervision via confidence weights.
+
+Instead of optimizing $\mathcal{L}_{\text{CF}}$ directly, optimize:
+$$\mathcal{L}_{\text{approx}} = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)$$
+
+where $\tilde{c}_{ui}$ is **label-aware**:
+$$\tilde{c}_{ui} = \begin{cases}
+c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot r_{ui}) & \text{if } y_i = 1 \\
+c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot (1 - r_{ui})) & \text{if } y_i = 0 \\
+c_{ui}^{\text{base}} & \text{if unlabeled}
+\end{cases}$$
+
+**How this incorporates supervision:**
+- Predictions matching labels get higher confidence → ALS preserves them
+- Predictions contradicting labels get lower confidence → ALS discards them
+- Unlabeled predictions use base confidence (e.g., certainty $|r_{ui} - 0.5|$)
+
+**ALS update equations (same form, but use $\tilde{C}$):**
 
 **Fix $Y$, update $X$**:
-For each classifier $u$:
-$$x_u = \left( Y C_u Y^\top + \lambda I \right)^{-1} Y C_u r_u$$
-
-where:
-- $C_u = \text{diag}(c_{u1}, \ldots, c_{un})$ (confidences for classifier $u$)
-- $r_u = [r_{u1}, \ldots, r_{un}]^\top$ (probabilities from classifier $u$)
+$$x_u = \left( Y \tilde{C}_u Y^\top + \lambda I \right)^{-1} Y \tilde{C}_u r_u$$
 
 **Fix $X$, update $Y$**:
-For each point $i$:
-$$y_i = \left( X C_i X^\top + \lambda I \right)^{-1} X C_i r_i$$
+$$y_i = \left( X \tilde{C}_i X^\top + \lambda I \right)^{-1} X \tilde{C}_i r_i$$
 
-where:
-- $C_i = \text{diag}(c_{1i}, \ldots, c_{mi})$ (confidences for point $i$)
-- $r_i = [r_{1i}, \ldots, r_{mi}]^\top$ (probabilities for point $i$)
-
-### Handling the Supervised Term
-
-After each ALS step, update the aggregator $\theta$ via gradient descent on $L_{\text{sup}}$:
+**Aggregator update:**
 $$\theta \leftarrow \theta - \eta \nabla_\theta L_{\text{sup}}(X, Y, \theta)$$
 
-**Algorithm summary**:
+**Algorithm:**
 ```
 1. Initialize X, Y randomly
+2. Compute label-aware confidence C̃
+3. For each iteration:
+   a. Fix Y, update X via ALS using C̃
+   b. Fix X, update Y via ALS using C̃
+   c. Fix X, Y, update θ via gradient descent
+   d. Check convergence on L_CF (not L_approx)
+4. Return X, Y, θ
+```
+
+**Computational complexity:**
+- Each ALS update: $O(d^3 + d^2n)$ or $O(d^3 + d^2m)$
+- Parallelizable across classifiers/instances
+- Typically 50-200 iterations
+
+**Advantages:**
+- ✅ Fast per iteration (closed-form)
+- ✅ Works with NumPy only
+- ✅ Reasonable approximation (90-95% of exact)
+
+**Disadvantages:**
+- ❌ Approximate (not exact gradient)
+- ❌ Extra hyperparameter (α)
+- ❌ May have convergence issues
+
+### Approach 2: Joint Gradient Descent via PyTorch (Exact)
+
+**Strategy:** Directly optimize $\mathcal{L}_{\text{CF}}$ using automatic differentiation.
+
+**Unified gradients:**
+$$\begin{align}
+\nabla_X \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_X L_{\text{recon}} + (1-\rho) \cdot \nabla_X L_{\text{sup}} \\
+\nabla_Y \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_Y L_{\text{recon}} + (1-\rho) \cdot \nabla_Y L_{\text{sup}} \\
+\nabla_\theta \mathcal{L}_{\text{CF}} &= (1-\rho) \cdot \nabla_\theta L_{\text{sup}}
+\end{align}$$
+
+**Update equations:**
+$$\begin{align}
+X &\leftarrow X - \eta_X \cdot \nabla_X \mathcal{L}_{\text{CF}} \\
+Y &\leftarrow Y - \eta_Y \cdot \nabla_Y \mathcal{L}_{\text{CF}} \\
+\theta &\leftarrow \theta - \eta_\theta \cdot \nabla_\theta \mathcal{L}_{\text{CF}}
+\end{align}$$
+
+**Algorithm:**
+```
+1. Initialize X, Y, θ as PyTorch parameters
 2. For each epoch:
-   a. Fix Y, update X via ALS (all classifiers)
-   b. Fix X, update Y via ALS (all points)
-   c. Fix X, Y, update θ via gradient descent (labeled points only)
+   a. Forward: Compute R̂ = X^T Y, ŷ = g_θ(R̂)
+   b. Loss: L_CF = ρ·L_recon + (1-ρ)·L_sup
+   c. Backward: loss.backward() (computes all gradients)
+   d. Update: optimizer.step() (updates X, Y, θ together)
 3. Return X, Y, θ
 ```
 
-### Computational Efficiency
+**Computational complexity:**
+- Forward pass: $O(dmn)$ for reconstruction + $O(mn)$ for aggregation
+- Backward pass: Same as forward (autodiff)
+- Typically 50-200 epochs
+- GPU acceleration: 10-100x speedup
 
-- Each ALS update: $O(d^3 + d^2n)$ or $O(d^3 + d^2m)$
-- Parallelizable across classifiers / data points
-- Typically converges in 10-50 iterations
-- Much faster than gradient descent on full objective
+**Advantages:**
+- ✅ Exact (true gradient of $\mathcal{L}_{\text{CF}}$)
+- ✅ Unified (all parameters updated consistently)
+- ✅ Flexible (easy to extend)
+- ✅ GPU acceleration
+
+**Disadvantages:**
+- ❌ Requires PyTorch
+- ❌ Slower per iteration on CPU
+- ❌ More hyperparameters (learning rates, optimizer)
+
+### Which Approach to Use?
+
+**Use ALS when:**
+- CPU-only environment
+- Speed is critical (real-time, frequent retraining)
+- Simple is better (no ML framework)
+- Approximation is acceptable
+
+**Use PyTorch when:**
+- GPU available
+- Accuracy is critical (research, production SLAs)
+- Want advanced features (attention, deep aggregators)
+- Already using PyTorch in pipeline
+
+**Recommendation:** Start with ALS for prototyping, switch to PyTorch for production optimization.
+
+**See also:**
+- `docs/methods/als_mathematical_derivation.md` - Full ALS derivation
+- `docs/methods/als_vs_pytorch.md` - Detailed comparison
+- `docs/failure_modes/als_approximation_vs_exact_optimization.md` - Why approximation needed
 
 ---
 

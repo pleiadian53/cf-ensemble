@@ -1,6 +1,8 @@
 # Examples and Demonstrations
 
-This directory contains examples and demonstrations of the **CF-Ensemble framework**, organized by topic.
+This document describes the runnable examples in the **`examples/`** directory of the CF-Ensemble repository.
+
+**Note:** These are Python scripts in the repository, not documentation files. To run them, clone the repository and navigate to the `examples/` directory.
 
 ## 📁 Directory Structure
 
@@ -24,25 +26,25 @@ examples/
 ### I want to...
 
 **...understand confidence weighting**  
-→ [`confidence_weighting/`](confidence_weighting/) - Start with `phase3_confidence_weighting.py`
+→ `examples/confidence_weighting/` - Start with `phase3_confidence_weighting.py`
 
 **...compare ALS vs PyTorch optimization**  
-→ [`optimization/`](optimization/) - Run `compare_als_pytorch.py`
+→ `examples/optimization/` - Run `compare_als_pytorch.py`
 
 **...benchmark CF-Ensemble vs baselines**  
-→ [`benchmarks/`](benchmarks/) - See Phase 4 scripts (in progress)
+→ `examples/benchmarks/` - See Phase 4 scripts (in progress)
 
 **...validate quality thresholds**  
-→ [`confidence_weighting/`](confidence_weighting/) - Run `quality_threshold_experiment.py`
+→ `examples/confidence_weighting/` - Run `quality_threshold_experiment.py`
 
 **...see learned reliability in action**  
-→ [`confidence_weighting/`](confidence_weighting/) - Run `reliability_model_demo.py`
+→ `examples/confidence_weighting/` - Run `reliability_model_demo.py`
 
 ---
 
 ## 🔬 Research & Validation Experiments
 
-**Moved to**: [`confidence_weighting/quality_threshold_experiment.py`](confidence_weighting/quality_threshold_experiment.py)
+**See:** `examples/confidence_weighting/quality_threshold_experiment.py` in the repository
 
 ---
 
@@ -50,33 +52,33 @@ examples/
 
 ### Phase 2: Optimization ✅
 
-**Directory**: [`optimization/`](optimization/)
+**Directory**: `examples/optimization/`
 
 | Script | Description | Time |
 |--------|-------------|------|
-| [`compare_als_pytorch.py`](optimization/compare_als_pytorch.py) | ALS vs PyTorch comparison | ~20s |
+| `compare_als_pytorch.py` | ALS vs PyTorch comparison | ~20s |
 
 **Status**: Complete  
-**Docs**: [`docs/methods/als_mathematical_derivation.md`](../docs/methods/als_mathematical_derivation.md)
+**Docs**: [ALS Mathematical Derivation](methods/als_mathematical_derivation.md)
 
 ---
 
 ### Phase 3: Confidence Weighting ✅
 
-**Directory**: [`confidence_weighting/`](confidence_weighting/)
+**Directory**: `examples/confidence_weighting/`
 
 | Script | Description | Time |
 |--------|-------------|------|
-| [`phase3_confidence_weighting.py`](confidence_weighting/phase3_confidence_weighting.py) | All strategies comparison | ~30s |
-| [`reliability_model_demo.py`](confidence_weighting/reliability_model_demo.py) | Detailed reliability analysis | ~45s |
-| [`quality_threshold_experiment.py`](confidence_weighting/quality_threshold_experiment.py) | Systematic validation | ~10-15min |
+| `phase3_confidence_weighting.py` | All strategies comparison | ~30s |
+| `reliability_model_demo.py` | Detailed reliability analysis | ~45s |
+| `quality_threshold_experiment.py` | Systematic validation | ~10-15min |
 
 **Status**: Complete  
-**Docs**: [`docs/methods/confidence_weighting/`](../docs/methods/confidence_weighting/)
+**Docs**: [Confidence Weighting Methods](methods/confidence_weighting/README.md)
 
 **Quick start**:
 ```bash
-# See all strategies in action
+# Clone the repository and run:
 python examples/confidence_weighting/phase3_confidence_weighting.py
 ```
 
@@ -84,29 +86,32 @@ python examples/confidence_weighting/phase3_confidence_weighting.py
 
 ### Phase 4: Benchmarks & Validation 🔄
 
-**Directory**: [`benchmarks/`](benchmarks/)
+**Directory**: `examples/benchmarks/`
 
 | Script | Description | Status |
 |--------|-------------|--------|
-| `synthetic_data_generator.py` | Flexible data generation | ⏳ Implementing |
+| `test_class_weighted_fix.py` | Class weighting validation | ✅ Complete |
+| `test_pytorch_vs_als.py` | ALS vs PyTorch comparison | ✅ Complete |
+| `analyze_class_weighted_results.py` | Detailed analysis | ✅ Complete |
+| `synthetic_data_generator.py` | Flexible data generation | ✅ Fixed |
 | `baseline_comparison.py` | vs averaging, stacking | ⏳ Planned |
 | `rho_ablation_study.py` | Effect of ρ parameter | ⏳ Planned |
 | `label_efficiency_analysis.py` | Performance vs labeled % | ⏳ Planned |
 
-**Status**: In Progress  
-**Docs**: [`dev/planning/IMPLEMENTATION_ROADMAP.md`](../dev/planning/IMPLEMENTATION_ROADMAP.md) (Phase 4)
+**Status**: Core testing complete, full validation in progress  
+**See:** [Benchmarks README](https://github.com/pleiadian53/cf-ensemble/tree/main/examples/benchmarks) for all scripts
 
 ---
 
 ### Phase 5: Real-World Datasets ⏳
 
-**Directory**: [`real_world/`](real_world/) - Planned
+**Directory**: `examples/real_world/` - Planned
 
 ---
 
 ### Phase 6: Analysis & Diagnostics ⏳
 
-**Directory**: [`analysis/`](analysis/) - Planned
+**Directory**: `examples/analysis/` - Planned
 
 ---
 
@@ -119,8 +124,8 @@ Each example directory has its own README with:
 - Links to related documentation
 
 **See also**:
-- 📚 [`docs/methods/`](../docs/methods/) - Theoretical documentation
-- 📓 [`notebooks/`](../notebooks/) - Interactive tutorials (to be modernized)
+- 📚 [Methods Documentation](methods/README.md) - Theoretical documentation
+- 📓 [Jupyter Notebooks](notebooks/README.md) - Interactive tutorials
 
 ---
 
@@ -159,14 +164,15 @@ Each example directory has its own README with:
   - `phase3_confidence_weighting.py` → `confidence_weighting/`
   - `quality_threshold_experiment.py` → `confidence_weighting/`
 
-**Currently implementing**:
-- `benchmarks/synthetic_data_generator.py` (Phase 4.1)
-- Baseline comparison scripts
-- Ablation studies
+**Recent updates** (2026-01-25):
+- ✅ Fixed synthetic data generator to achieve target quality
+- ✅ Discovered and fixed aggregator weight collapse (class-weighted gradients)
+- ✅ Validated both ALS and PyTorch trainers on imbalanced data
+- 🔄 Full validation suite in progress
 
-See [`benchmarks/README.md`](benchmarks/README.md) for details.
+See the [Benchmarks directory](https://github.com/pleiadian53/cf-ensemble/tree/main/examples/benchmarks) in the repository for all scripts and detailed README.
 
 ---
 
-**Last Updated**: January 24, 2026  
-**Status**: Phase 3 Complete ✅ | Phase 4 In Progress 🔄
+**Last Updated**: January 25, 2026  
+**Status**: Phase 3 Complete ✅ | Core fixes complete ✅ | Phase 4 validation in progress 🔄

@@ -324,7 +324,7 @@ If you use learned reliability weights in your research, please cite:
 
 ## Contributing
 
-Found a bug or have a question? See the main [CONTRIBUTING.md](../../../CONTRIBUTING.md) guide.
+Found a bug or have a question? Please open an issue or pull request on GitHub.
 
 **Common contributions**:
 - Empirical results on your datasets

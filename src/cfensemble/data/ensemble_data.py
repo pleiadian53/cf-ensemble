@@ -112,6 +112,72 @@ class EnsembleData:
         """
         return np.abs(self.R - 0.5)
     
+    def compute_label_aware_confidence(
+        self,
+        alpha: float = 1.0,
+        base_confidence: Optional[np.ndarray] = None
+    ) -> np.ndarray:
+        """
+        Compute label-aware confidence weights that incorporate supervision.
+        
+        This allows ALS to approximate the combined loss L_CF = ρ·L_recon + (1-ρ)·L_sup
+        by modulating confidence weights based on label agreement.
+        
+        For labeled instances:
+            - If y_i = 1: c_ui ∝ r_ui (reward high predictions)
+            - If y_i = 0: c_ui ∝ (1 - r_ui) (reward low predictions)
+        
+        For unlabeled instances:
+            - Use base confidence (typically certainty: |r_ui - 0.5|)
+        
+        The parameter α controls supervision strength:
+            - α = 0: Pure base confidence (no supervision)
+            - α = 1: Full label-aware weighting
+            - α > 1: Strong supervision emphasis
+        
+        Parameters:
+            alpha: Supervision strength (0 = none, 1 = moderate, >1 = strong)
+            base_confidence: Base confidence matrix (m × n). If None, uses certainty.
+        
+        Returns:
+            C: Label-aware confidence matrix (m × n)
+        
+        Mathematical justification:
+            ALS minimizes: Σ c_ui(r_ui - x_u^T y_i)²
+            
+            By setting c_ui high when r_ui agrees with y_i:
+            - Encourages reconstruction to preserve correct predictions
+            - Discourages reconstruction of incorrect predictions
+            - Approximates adding supervision term to objective
+        
+        Example:
+            >>> data = EnsembleData(R, labels)
+            >>> C_supervised = data.compute_label_aware_confidence(alpha=1.0)
+            >>> # Use C_supervised in ALS to approximate combined loss
+        """
+        if base_confidence is None:
+            base_confidence = np.abs(self.R - 0.5)  # Certainty
+        
+        C = base_confidence.copy()
+        
+        # Modulate confidence for labeled instances
+        for i in np.where(self.labeled_idx)[0]:
+            y_i = self.labels[i]
+            
+            if y_i == 1:
+                # Positive: reward high predictions, penalize low
+                # c_ui = base * (1 + α * r_ui)
+                supervision_weight = self.R[:, i]
+            else:
+                # Negative: reward low predictions, penalize high
+                # c_ui = base * (1 + α * (1 - r_ui))
+                supervision_weight = 1.0 - self.R[:, i]
+            
+            # Blend base confidence with supervision signal
+            C[:, i] = base_confidence[:, i] * (1.0 + alpha * supervision_weight)
+        
+        return C
+    
     def get_labeled_data(self) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Get data for labeled instances only.

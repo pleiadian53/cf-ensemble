@@ -180,14 +180,20 @@ class WeightedAggregator(BaseAggregator):
         Y: np.ndarray,
         labeled_idx: np.ndarray,
         labels: np.ndarray,
-        lr: float
+        lr: float,
+        use_class_weights: bool = True
     ):
         """
         Update weights via gradient descent on cross-entropy loss.
         
-        Gradient:
-            ∂CE/∂w = (1/n) Σ (ŷ - y) r̂
-            ∂CE/∂b = (1/n) Σ (ŷ - y)
+        With class weighting (use_class_weights=True), uses inverse class frequency
+        to balance gradients from imbalanced data. This prevents majority class
+        from dominating gradient computation.
+        
+        Gradient (class-weighted):
+            instance_weights = n / (2 * n_class) for each class
+            ∂CE/∂w = Σ instance_weights[i] * (ŷ[i] - y[i]) * r̂[i] / Σ instance_weights
+            ∂CE/∂b = Σ instance_weights[i] * (ŷ[i] - y[i]) / Σ instance_weights
         
         Parameters:
             X: Classifier factors (d × m)
@@ -195,6 +201,8 @@ class WeightedAggregator(BaseAggregator):
             labeled_idx: Boolean mask for labeled instances (n,)
             labels: Ground truth labels (n,)
             lr: Learning rate
+            use_class_weights: If True, weight instances by inverse class frequency
+                             Recommended for imbalanced data (default: True)
         """
         # Reconstruct probabilities for labeled instances
         R_hat = X.T @ Y[:, labeled_idx]  # (m × n_labeled)
@@ -203,10 +211,34 @@ class WeightedAggregator(BaseAggregator):
         y_pred = self.predict(R_hat)  # (n_labeled,)
         y_true = labels[labeled_idx]  # (n_labeled,)
         
-        # Compute gradient of CE w.r.t. weights
+        # Compute residuals
         residual = y_pred - y_true  # (n_labeled,)
-        grad_w = (R_hat @ residual) / len(residual)  # (m,)
-        grad_b = np.mean(residual)
+        
+        # Compute instance weights for class balancing
+        if use_class_weights:
+            n = len(y_true)
+            n_pos = np.sum(y_true == 1)
+            n_neg = n - n_pos
+            
+            # Inverse class frequency weights
+            # Formula: weight = n / (2 * n_class)
+            # This ensures each class contributes equally to the gradient
+            if n_pos > 0 and n_neg > 0:
+                pos_weight = n / (2 * n_pos)
+                neg_weight = n / (2 * n_neg)
+                instance_weights = np.where(y_true == 1, pos_weight, neg_weight)
+            else:
+                # Edge case: only one class present
+                instance_weights = np.ones(n)
+            
+            # Weighted gradient
+            weighted_residual = residual * instance_weights
+            grad_w = (R_hat @ weighted_residual) / np.sum(instance_weights)
+            grad_b = np.sum(weighted_residual) / np.sum(instance_weights)
+        else:
+            # Standard (unweighted) gradient
+            grad_w = (R_hat @ residual) / len(residual)
+            grad_b = np.mean(residual)
         
         # Gradient descent update
         self.w -= lr * grad_w
