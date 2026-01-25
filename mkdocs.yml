@@ -1,0 +1,156 @@
+site_name: CF-Ensemble
+site_description: Semi-supervised ensemble learning with confidence weighting, optimized for imbalanced biomedical data
+site_author: CF-Ensemble Research Team
+site_url: https://pleiadian53.github.io/cf-ensemble/
+# Note: For local development, MkDocs ignores site_url and serves at http://127.0.0.1:8000/
+
+repo_name: pleiadian53/cf-ensemble
+repo_url: https://github.com/pleiadian53/cf-ensemble
+edit_uri: edit/main/docs/
+
+# Copyright
+copyright: Copyright &copy; 2026 CF-Ensemble Research Team
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  font:
+    text: Roboto
+    code: Roboto Mono
+  features:
+    - navigation.instant        # Instant loading
+    - navigation.tracking       # Anchor tracking
+    - navigation.tabs           # Top-level navigation tabs
+    - navigation.tabs.sticky    # Sticky tabs
+    - navigation.sections       # Section navigation
+    - navigation.expand         # Expand sections by default
+    - navigation.top            # Back to top button
+    - search.suggest            # Search suggestions
+    - search.highlight          # Highlight search results
+    - content.code.copy         # Copy button for code blocks
+    - content.action.edit       # Edit button (links to GitHub)
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  
+  # Python Markdown Extensions (pymdownx)
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Extra JavaScript for MathJax
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+# Extra CSS
+extra_css:
+  - stylesheets/extra.css
+
+# Plugins
+plugins:
+  - search:
+      lang: en
+      separator: '[\s\-\.]+'
+  - tags
+  - mkdocs-jupyter:
+      include_source: True           # Include source code in rendered output
+      execute: False                 # Don't re-run notebooks (use saved outputs)
+      allow_errors: False            # Stop build if notebook has errors
+      ignore_h1_titles: True         # Use filename as title, not first H1
+      theme: light                   # Code theme (light for better readability)
+      include_requirejs: True        # Enable RequireJS for interactive outputs
+      show_input: True               # Show code cells
+      no_input: False                # Don't hide input cells
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - 'Quick Reference': QUICK_REFERENCE.md
+  - 'Results Summary': RESULTS_2026-01-24.md
+  - 'Getting Started':
+      - 'Installation': INSTALL.md
+      - 'Quick Start': methods/QUICK_REFERENCE.md
+  - 'Methods':
+      - 'Overview': methods/README.md
+      - 'Imbalanced Data Tutorial': methods/imbalanced_data_tutorial.md
+      - 'Confidence Weighting':
+          - 'Overview': methods/confidence_weighting/README.md
+          - 'When to Use': methods/confidence_weighting/when_to_use_confidence_weighting.md
+          - 'Quality Analysis': methods/confidence_weighting/base_classifier_quality_analysis.md
+          - 'Theory vs Empirics': methods/confidence_weighting/theory_vs_empirics.md
+          - 'Polarity Models': methods/confidence_weighting/polarity_models_tutorial.md
+      - 'Optimization':
+          - 'Objective Tutorial': methods/cf_ensemble_optimization_objective_tutorial.md
+          - 'ALS Derivation': methods/als_mathematical_derivation.md
+          - 'ALS vs PyTorch': methods/als_vs_pytorch.md
+          - 'Hyperparameter Tuning': methods/hyperparameter_tuning.md
+      - 'Knowledge Distillation': methods/knowledge_distillation_tutorial.md
+  - 'Examples':
+      - 'Overview': examples_README.md
+      - 'Confidence Weighting': examples_confidence_weighting_README.md
+
+# Extra configuration
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/pleiadian53/cf-ensemble
+  version:
+    provider: mike
