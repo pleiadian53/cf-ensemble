@@ -181,19 +181,32 @@ class WeightedAggregator(BaseAggregator):
         labeled_idx: np.ndarray,
         labels: np.ndarray,
         lr: float,
-        use_class_weights: bool = True
+        use_class_weights: bool = True,
+        focal_gamma: float = 0.0
     ):
         """
-        Update weights via gradient descent on cross-entropy loss.
+        Update weights via gradient descent on cross-entropy or focal loss.
         
-        With class weighting (use_class_weights=True), uses inverse class frequency
-        to balance gradients from imbalanced data. This prevents majority class
-        from dominating gradient computation.
+        Supports two orthogonal techniques for handling imbalanced/difficult data:
         
-        Gradient (class-weighted):
-            instance_weights = n / (2 * n_class) for each class
-            ∂CE/∂w = Σ instance_weights[i] * (ŷ[i] - y[i]) * r̂[i] / Σ instance_weights
-            ∂CE/∂b = Σ instance_weights[i] * (ŷ[i] - y[i]) / Σ instance_weights
+        1. **Class weighting** (use_class_weights=True):
+           - Balances contribution from each class (addresses class imbalance)
+           - Uses inverse class frequency: weight = n / (2 * n_class)
+           - Prevents majority class from dominating gradients
+        
+        2. **Focal loss** (focal_gamma > 0):
+           - Down-weights easy examples, focuses on hard ones
+           - Modulating factor: (1 - p_t)^gamma
+           - Addresses easy vs. hard example imbalance
+        
+        These can be combined: class weighting handles class imbalance,
+        focal loss handles example difficulty.
+        
+        Gradient formula:
+            focal_weight = (1 - p_t)^gamma  where p_t = p if y=1, else (1-p)
+            total_weight = class_weight * focal_weight
+            ∂L/∂w = Σ total_weight[i] * (ŷ[i] - y[i]) * r̂[i] / Σ total_weight
+            ∂L/∂b = Σ total_weight[i] * (ŷ[i] - y[i]) / Σ total_weight
         
         Parameters:
             X: Classifier factors (d × m)
@@ -203,6 +216,8 @@ class WeightedAggregator(BaseAggregator):
             lr: Learning rate
             use_class_weights: If True, weight instances by inverse class frequency
                              Recommended for imbalanced data (default: True)
+            focal_gamma: Focal loss exponent (0.0 = disabled, 2.0 = standard)
+                        Higher gamma down-weights easy examples more strongly
         """
         # Reconstruct probabilities for labeled instances
         R_hat = X.T @ Y[:, labeled_idx]  # (m × n_labeled)
@@ -214,9 +229,12 @@ class WeightedAggregator(BaseAggregator):
         # Compute residuals
         residual = y_pred - y_true  # (n_labeled,)
         
-        # Compute instance weights for class balancing
+        # Compute instance weights (combination of class and focal weighting)
+        n = len(y_true)
+        instance_weights = np.ones(n)
+        
+        # 1. Class weighting (for imbalanced classes)
         if use_class_weights:
-            n = len(y_true)
             n_pos = np.sum(y_true == 1)
             n_neg = n - n_pos
             
@@ -227,11 +245,24 @@ class WeightedAggregator(BaseAggregator):
                 pos_weight = n / (2 * n_pos)
                 neg_weight = n / (2 * n_neg)
                 instance_weights = np.where(y_true == 1, pos_weight, neg_weight)
-            else:
-                # Edge case: only one class present
-                instance_weights = np.ones(n)
+        
+        # 2. Focal loss modulation (for hard examples)
+        if focal_gamma > 0:
+            # Compute p_t: probability of true class
+            # p_t = p if y=1, else (1-p)
+            p_t = np.where(y_true == 1, y_pred, 1 - y_pred)
             
-            # Weighted gradient
+            # Focal weight: (1 - p_t)^gamma
+            # Easy examples (high p_t) get low weight
+            # Hard examples (low p_t) get high weight
+            focal_weight = np.power(1 - p_t, focal_gamma)
+            
+            # Combine with class weights
+            instance_weights = instance_weights * focal_weight
+        
+        # Compute weighted gradients
+        if use_class_weights or focal_gamma > 0:
+            # Normalize by sum of weights
             weighted_residual = residual * instance_weights
             grad_w = (R_hat @ weighted_residual) / np.sum(instance_weights)
             grad_b = np.sum(weighted_residual) / np.sum(instance_weights)

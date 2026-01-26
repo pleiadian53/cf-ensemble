@@ -141,7 +141,9 @@ nav:
           - 'Objective Tutorial': methods/cf_ensemble_optimization_objective_tutorial.md
           - 'ALS Derivation': methods/als_mathematical_derivation.md
           - 'ALS vs PyTorch': methods/als_vs_pytorch.md
+          - 'Techniques Summary': methods/optimization/TECHNIQUES_SUMMARY.md
           - 'Class-Weighted Gradients': methods/optimization/class_weighted_gradients.md
+          - 'Focal Loss': methods/optimization/focal_loss.md
           - 'Hyperparameter Tuning': methods/hyperparameter_tuning.md
       - 'Knowledge Distillation': methods/knowledge_distillation_tutorial.md
   - 'Failure Modes':

@@ -104,6 +104,7 @@ class CFEnsembleTrainer:
         label_aware_alpha: float = 1.0,
         freeze_aggregator_iters: int = 0,
         use_class_weights: bool = True,
+        focal_gamma: float = 0.0,
         verbose: bool = True,
         random_seed: Optional[int] = None
     ):
@@ -141,6 +142,11 @@ class CFEnsembleTrainer:
                              True: Weight instances by inverse class frequency (recommended)
                              False: Standard unweighted gradients
                              Essential for imbalanced data to prevent majority class domination
+            focal_gamma: Focal loss exponent for hard example mining (γ ≥ 0)
+                        0.0 = disabled (standard cross-entropy, default)
+                        2.0 = standard focal loss (down-weights easy examples)
+                        Higher values focus more strongly on hard examples
+                        Can be combined with class_weights for synergy
             verbose: Whether to print training progress
             random_seed: Random seed for reproducibility
         
@@ -169,6 +175,7 @@ class CFEnsembleTrainer:
         self.label_aware_alpha = label_aware_alpha
         self.freeze_aggregator_iters = freeze_aggregator_iters
         self.use_class_weights = use_class_weights
+        self.focal_gamma = focal_gamma
         
         # Store random seed for reproducibility
         self.random_seed = random_seed
@@ -313,7 +320,8 @@ class CFEnsembleTrainer:
                 self.aggregator.update(
                     self.X, self.Y, labeled_idx, labels,
                     lr=self.aggregator_lr,
-                    use_class_weights=self.use_class_weights
+                    use_class_weights=self.use_class_weights,
+                    focal_gamma=self.focal_gamma
                 )
             
             # 4. Compute combined loss

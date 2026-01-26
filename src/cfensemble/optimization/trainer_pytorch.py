@@ -308,6 +308,7 @@ class CFEnsemblePyTorchTrainer:
         patience: int = 20,
         min_delta: float = 1e-4,
         use_class_weights: bool = True,
+        focal_gamma: float = 0.0,
         device: str = 'auto',
         verbose: bool = True,
         random_seed: Optional[int] = None
@@ -329,6 +330,7 @@ class CFEnsemblePyTorchTrainer:
         self.patience = patience
         self.min_delta = min_delta
         self.use_class_weights = use_class_weights
+        self.focal_gamma = focal_gamma
         self.verbose = verbose
         self.random_seed = random_seed
         
