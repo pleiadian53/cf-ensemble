@@ -1,0 +1,4534 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Semi-supervised ensemble learning with confidence weighting, optimized for imbalanced biomedical data">
+      
+      
+        <meta name="author" content="CF-Ensemble Research Team">
+      
+      
+        <link rel="canonical" href="https://pleiadian53.github.io/cf-ensemble/methods/confidence_weighting/polarity_models_tutorial/">
+      
+      
+        <link rel="prev" href="../theory_vs_empirics/">
+      
+      
+        <link rel="next" href="../../cf_ensemble_optimization_objective_tutorial/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.2">
+    
+    
+      
+        <title>Polarity Models - CF-Ensemble</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cell-level-reliability-polarity-models-and-confidence-weighting" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="CF-Ensemble" class="md-header__button md-logo" aria-label="CF-Ensemble" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            CF-Ensemble
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Polarity Models
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/pleiadian53/cf-ensemble" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pleiadian53/cf-ensemble
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../QUICK_REFERENCE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quick Reference
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../../RESULTS_2026-01-24.md" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Results Summary
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../INSTALL/" class="md-tabs__link">
+          
+  
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../" class="md-tabs__link">
+          
+  
+  
+  Methods
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../failure_modes/" class="md-tabs__link">
+          
+  
+  
+  Failure Modes
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../notebooks/" class="md-tabs__link">
+          
+  
+  
+  Notebooks
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../examples_README.md" class="md-tabs__link">
+          
+  
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../guides/" class="md-tabs__link">
+          
+  
+  
+  Setup Guides
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="CF-Ensemble" class="md-nav__button md-logo" aria-label="CF-Ensemble" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    CF-Ensemble
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/pleiadian53/cf-ensemble" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    pleiadian53/cf-ensemble
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../QUICK_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../RESULTS_2026-01-24.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Results Summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../INSTALL/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../QUICK_REFERENCE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Start
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Methods
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Methods
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../imbalanced_data_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Imbalanced Data Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Confidence Weighting
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Confidence Weighting
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../when_to_use_confidence_weighting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    When to Use
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../base_classifier_quality_analysis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quality Analysis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../theory_vs_empirics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Theory vs Empirics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polarity Models
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Polarity Models
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-motivation-why-cell-level-reliability-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The Motivation: Why Cell-Level Reliability Matters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. The Motivation: Why Cell-Level Reliability Matters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-problem-with-global-weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Problem with Global Weights
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-problem-with-pure-reconstruction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Problem with Pure Reconstruction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-insight-trust-varies-per-cell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Insight: Trust Varies Per Cell
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-polarity-labels-what-are-we-predicting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Polarity Labels: What Are We Predicting?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Polarity Labels: What Are We Predicting?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-training-data-explosion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Training Data Explosion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-what-can-a-polarity-model-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. What Can a Polarity Model Learn?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. What Can a Polarity Model Learn?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feature-space-for-cell-reliability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Space for Cell Reliability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patterns-the-model-can-discover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patterns the Model Can Discover
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-polarity-model-as-cell-level-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The Polarity Model as Cell-Level Supervision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. The Polarity Model as Cell-Level Supervision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Formulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#training-on-labeled-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Training on Labeled Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-with-cf-ensemble" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration with CF-Ensemble
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-test-set-challenge-the-pseudo-label-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The Test Set Challenge: The Pseudo-Label Problem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The Test Set Challenge: The Pseudo-Label Problem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-fundamental-issue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Fundamental Issue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-feedback-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Feedback Loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-principled-approach-soft-pseudo-labels-and-em" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Principled Approach: Soft Pseudo-Labels and EM
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Principled Approach: Soft Pseudo-Labels and EM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#treating-labels-as-latent-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Treating Labels as Latent Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#em-algorithm-for-polarity-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EM Algorithm for Polarity Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regularization-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regularization Strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-when-polarity-models-add-too-much-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. When Polarity Models Add Too Much Complexity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. When Polarity Models Add Too Much Complexity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#four-design-burdens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Four Design Burdens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-its-not-worth-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When It's Not Worth It
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-simpler-alternatives-that-capture-80-of-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Simpler Alternatives That Capture 80% of Value
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Simpler Alternatives That Capture 80% of Value">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-direct-reliability-weighting-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Direct Reliability Weighting (Recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-instance-dependent-gating-mixture-of-experts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Instance-Dependent Gating (Mixture of Experts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-c-stay-with-kd-style-combined-objective" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option C: Stay with KD-Style Combined Objective
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-mathematical-formulation-option-a-in-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Mathematical Formulation: Option A in Detail
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Mathematical Formulation: Option A in Detail">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#complete-reliability-weight-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Reliability Weight Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-when-polarity-models-are-worth-the-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. When Polarity Models Are Worth the Complexity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. When Polarity Models Are Worth the Complexity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ideal-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ideal Conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-use-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Use Case
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-practical-implementation-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Practical Implementation Strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Practical Implementation Strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-start-simple-week-1-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Start Simple (Week 1-2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-add-reliability-weighting-week-3-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Add Reliability Weighting (Week 3-4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-full-polarity-model-week-5-6-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Full Polarity Model (Week 5-6) - Optional
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-evaluation-and-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Evaluation and Diagnostics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Evaluation and Diagnostics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metrics-to-track" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics to Track
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-comparison-simple-vs-advanced-confidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Comparison: Simple vs. Advanced Confidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-code-template-reliability-weight-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Code Template: Reliability Weight Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-research-directions-and-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Research Directions and Open Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Research Directions and Open Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#theoretical-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theoretical Questions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithmic-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithmic Improvements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-connection-to-related-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Connection to Related Work
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="16. Connection to Related Work">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mixture-of-experts-moe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mixture of Experts (MoE)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stacking-with-meta-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacking with Meta-Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibration-and-uncertainty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calibration and Uncertainty
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-decision-framework-should-you-use-polarity-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. Decision Framework: Should You Use Polarity Models?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="17. Decision Framework: Should You Use Polarity Models?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-pragmatic-recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Pragmatic Recommendation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Pragmatic Recommendation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-goldilocks-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Goldilocks Approach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-implementation-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. Implementation Priority
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="19. Implementation Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Sequence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20. Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="20. Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-core-insight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Core Insight
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21. Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_5_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_4" id="__nav_5_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Optimization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../cf_ensemble_optimization_objective_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Objective Tutorial
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../als_mathematical_derivation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ALS Derivation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../als_vs_pytorch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ALS vs PyTorch
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../optimization/TECHNIQUES_SUMMARY/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Techniques Summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../optimization/class_weighted_gradients/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Class-Weighted Gradients
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../optimization/focal_loss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Focal Loss
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../hyperparameter_tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hyperparameter Tuning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../knowledge_distillation_tutorial/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Knowledge Distillation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Failure Modes
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Failure Modes
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../failure_modes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../failure_modes/aggregator_weight_collapse/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Aggregator Weight Collapse
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../failure_modes/transductive_vs_inductive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transductive vs Inductive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../failure_modes/als_approximation_vs_exact_optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ALS Approximation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../failure_modes/optimization_instability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Optimization Instability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notebooks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Notebooks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/01_collaborative_filtering/Demo-Part1-CF_with_ALS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Collaborative Filtering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/02_loss_functions/Demo-Part2-The_Role_of_Loss_Function_in_CF_Ensemble/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Loss Functions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/03_knn_ensemble/Demo-Part3-CF_Ensemble_with_kNNs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    kNN Ensemble
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacking
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stacking
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/04_stacking/Demo-Part4-CF_Stacker/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CF Stacker
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/04_stacking/demo-stacking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stacking Demo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_6" id="__nav_7_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Probability Filtering
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Probability Filtering
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/05_probability_filtering/Demo-Part5-CF_Ensemble_via_Probability_Filtering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Main Demo
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/05_probability_filtering/Demo-Part5a-Alternative_Data_Representations_for_Probability_Filtering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alternative Representations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../notebooks/05_probability_filtering/Demo-Part5b-Probability_Filtering_via_Custom_Loss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Loss
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples_README.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../examples_confidence_weighting_README.md" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Confidence Weighting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Setup Guides
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Setup Guides
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/mkdocs_mathjax_setup_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    MkDocs + MathJax Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/mkdocs_quick_reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quick Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-the-motivation-why-cell-level-reliability-matters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. The Motivation: Why Cell-Level Reliability Matters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. The Motivation: Why Cell-Level Reliability Matters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-problem-with-global-weights" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Problem with Global Weights
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-problem-with-pure-reconstruction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Problem with Pure Reconstruction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-insight-trust-varies-per-cell" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Insight: Trust Varies Per Cell
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-polarity-labels-what-are-we-predicting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Polarity Labels: What Are We Predicting?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Polarity Labels: What Are We Predicting?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-training-data-explosion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Training Data Explosion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-what-can-a-polarity-model-learn" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. What Can a Polarity Model Learn?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. What Can a Polarity Model Learn?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#feature-space-for-cell-reliability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Space for Cell Reliability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#patterns-the-model-can-discover" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Patterns the Model Can Discover
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-polarity-model-as-cell-level-supervision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The Polarity Model as Cell-Level Supervision
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. The Polarity Model as Cell-Level Supervision">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#formulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Formulation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#training-on-labeled-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Training on Labeled Data
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-with-cf-ensemble" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integration with CF-Ensemble
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-test-set-challenge-the-pseudo-label-problem" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The Test Set Challenge: The Pseudo-Label Problem
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The Test Set Challenge: The Pseudo-Label Problem">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-fundamental-issue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Fundamental Issue
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-feedback-loop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Feedback Loop
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-principled-approach-soft-pseudo-labels-and-em" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Principled Approach: Soft Pseudo-Labels and EM
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Principled Approach: Soft Pseudo-Labels and EM">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#treating-labels-as-latent-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Treating Labels as Latent Variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#em-algorithm-for-polarity-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EM Algorithm for Polarity Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regularization-strategies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regularization Strategies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-when-polarity-models-add-too-much-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. When Polarity Models Add Too Much Complexity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. When Polarity Models Add Too Much Complexity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#four-design-burdens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Four Design Burdens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-its-not-worth-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When It's Not Worth It
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-simpler-alternatives-that-capture-80-of-value" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Simpler Alternatives That Capture 80% of Value
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Simpler Alternatives That Capture 80% of Value">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-direct-reliability-weighting-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Direct Reliability Weighting (Recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-instance-dependent-gating-mixture-of-experts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Instance-Dependent Gating (Mixture of Experts)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-c-stay-with-kd-style-combined-objective" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option C: Stay with KD-Style Combined Objective
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-mathematical-formulation-option-a-in-detail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Mathematical Formulation: Option A in Detail
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Mathematical Formulation: Option A in Detail">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#complete-reliability-weight-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Reliability Weight Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-when-polarity-models-are-worth-the-complexity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. When Polarity Models Are Worth the Complexity
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. When Polarity Models Are Worth the Complexity">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ideal-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ideal Conditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-use-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Use Case
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-practical-implementation-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Practical Implementation Strategy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Practical Implementation Strategy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-start-simple-week-1-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Start Simple (Week 1-2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-add-reliability-weighting-week-3-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Add Reliability Weighting (Week 3-4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-full-polarity-model-week-5-6-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Full Polarity Model (Week 5-6) - Optional
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-evaluation-and-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Evaluation and Diagnostics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Evaluation and Diagnostics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#metrics-to-track" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics to Track
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-comparison-simple-vs-advanced-confidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Comparison: Simple vs. Advanced Confidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-code-template-reliability-weight-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Code Template: Reliability Weight Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-research-directions-and-open-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Research Directions and Open Questions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Research Directions and Open Questions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#theoretical-questions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Theoretical Questions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#algorithmic-improvements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Algorithmic Improvements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-connection-to-related-work" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Connection to Related Work
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="16. Connection to Related Work">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mixture-of-experts-moe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mixture of Experts (MoE)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stacking-with-meta-features" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stacking with Meta-Features
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#calibration-and-uncertainty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calibration and Uncertainty
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-decision-framework-should-you-use-polarity-models" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. Decision Framework: Should You Use Polarity Models?
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="17. Decision Framework: Should You Use Polarity Models?">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#decision-tree" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision Tree
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-pragmatic-recommendation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Pragmatic Recommendation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Pragmatic Recommendation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-goldilocks-approach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Goldilocks Approach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-implementation-priority" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. Implementation Priority
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="19. Implementation Priority">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#recommended-sequence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recommended Sequence
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20. Summary
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="20. Summary">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-takeaways" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key Takeaways
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-core-insight" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Core Insight
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21. Conclusion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+    <a href="https://github.com/pleiadian53/cf-ensemble/edit/main/docs/methods/confidence_weighting/polarity_models_tutorial.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20.71 7.04c.39-.39.39-1.04 0-1.41l-2.34-2.34c-.37-.39-1.02-.39-1.41 0l-1.84 1.83 3.75 3.75M3 17.25V21h3.75L17.81 9.93l-3.75-3.75z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="cell-level-reliability-polarity-models-and-confidence-weighting">Cell-Level Reliability: Polarity Models and Confidence Weighting<a class="headerlink" href="#cell-level-reliability-polarity-models-and-confidence-weighting" title="Permanent link">&para;</a></h1>
+<p><strong>From global reconstruction to fine-grained trust: Learning which classifier-point pairs to believe</strong></p>
+<hr />
+<h2 id="introduction">Introduction<a class="headerlink" href="#introduction" title="Permanent link">&para;</a></h2>
+<p>In the <a href="../../cf_ensemble_optimization_objective_tutorial/">CF-Ensemble optimization tutorial</a>, we introduced confidence weights <span class="arithmatex">\(c_{ui}\)</span> that control how much we trust each classifier's prediction for each data point. But we left open the question: <strong>How should we set these weights?</strong></p>
+<p>This tutorial explores a sophisticated approach: <strong>learning a polarity model</strong> that predicts whether each cell <span class="arithmatex">\((u,i)\)</span> in the probability matrix corresponds to a correct or incorrect prediction. This provides:
+1. <strong>Massive supervision</strong>: <span class="arithmatex">\(m \times |\mathcal{L}|\)</span> cell-level training examples instead of just <span class="arithmatex">\(|\mathcal{L}|\)</span> point-level examples
+2. <strong>Fine-grained trust</strong>: Direct modeling of "which classifier to trust where"
+3. <strong>Explicit signal-noise separation</strong>: Goes beyond hoping low-rank reconstruction magically filters errors</p>
+<p>However, this power comes with complexity. We'll explore when it's worth it, simpler alternatives, and practical recommendations.</p>
+<hr />
+<h2 id="1-the-motivation-why-cell-level-reliability-matters">1. The Motivation: Why Cell-Level Reliability Matters<a class="headerlink" href="#1-the-motivation-why-cell-level-reliability-matters" title="Permanent link">&para;</a></h2>
+<h3 id="the-problem-with-global-weights">The Problem with Global Weights<a class="headerlink" href="#the-problem-with-global-weights" title="Permanent link">&para;</a></h3>
+<p>Traditional ensemble methods assign <strong>global weights</strong> to classifiers:
+$<span class="arithmatex">\(\hat{p}_i = \sum_{u=1}^m w_u \cdot r_{ui}\)</span>$</p>
+<p>Problems:
+- Classifier <span class="arithmatex">\(u\)</span> might be excellent on certain data regions but poor on others
+- No adaptation to instance-specific patterns
+- Treats all predictions from a classifier equally</p>
+<h3 id="the-problem-with-pure-reconstruction">The Problem with Pure Reconstruction<a class="headerlink" href="#the-problem-with-pure-reconstruction" title="Permanent link">&para;</a></h3>
+<p>Matrix factorization with uniform confidence:
+$<span class="arithmatex">\(L = \sum_{u,i} (r_{ui} - x_u^\top y_i)^2\)</span>$</p>
+<p>Problems:
+- All probabilities weighted equally
+- Systematic errors reconstructed faithfully
+- No notion of which cells are "signal" vs "noise"</p>
+<h3 id="the-insight-trust-varies-per-cell">The Insight: Trust Varies Per Cell<a class="headerlink" href="#the-insight-trust-varies-per-cell" title="Permanent link">&para;</a></h3>
+<p><strong>Key observation</strong>: Reliability is a function of both classifier <span class="arithmatex">\(u\)</span> <strong>and</strong> instance <span class="arithmatex">\(i\)</span>:</p>
+<table>
+<thead>
+<tr>
+<th>Instance Type</th>
+<th>Classifier A</th>
+<th>Classifier B</th>
+<th>Classifier C</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Common cases</td>
+<td>✅ Reliable</td>
+<td>✅ Reliable</td>
+<td>✅ Reliable</td>
+</tr>
+<tr>
+<td>Rare subtype X</td>
+<td>❌ Overconfident</td>
+<td>✅ Good</td>
+<td>❌ Uncertain</td>
+</tr>
+<tr>
+<td>High-dimensional</td>
+<td>✅ Good</td>
+<td>❌ Poor calibration</td>
+<td>✅ Good</td>
+</tr>
+<tr>
+<td>Noisy features</td>
+<td>❌ Overfits</td>
+<td>✅ Robust</td>
+<td>❌ Sensitive</td>
+</tr>
+</tbody>
+</table>
+<p><strong>We need cell-level <span class="arithmatex">\((u,i)\)</span> reliability modeling, not just classifier-level or instance-level.</strong></p>
+<hr />
+<h2 id="2-polarity-labels-what-are-we-predicting">2. Polarity Labels: What Are We Predicting?<a class="headerlink" href="#2-polarity-labels-what-are-we-predicting" title="Permanent link">&para;</a></h2>
+<h3 id="definition">Definition<a class="headerlink" href="#definition" title="Permanent link">&para;</a></h3>
+<p>For a labeled point <span class="arithmatex">\(i \in \mathcal{L}\)</span> with true label <span class="arithmatex">\(y_i \in \{0,1\}\)</span> and classifier <span class="arithmatex">\(u\)</span>'s probability <span class="arithmatex">\(r_{ui}\)</span>:</p>
+<p><strong>Step 1</strong>: Convert probability to binary prediction using threshold <span class="arithmatex">\(\tau\)</span> (typically 0.5):
+$<span class="arithmatex">\(\hat{y}_{ui} = \mathbb{1}[r_{ui} \geq \tau]\)</span>$</p>
+<p><strong>Step 2</strong>: Determine polarity based on <span class="arithmatex">\((\hat{y}_{ui}, y_i)\)</span>:</p>
+<div class="arithmatex">\[p_{ui} = \begin{cases}
+\text{TP} &amp; \text{if } \hat{y}_{ui} = 1 \text{ and } y_i = 1 \\
+\text{TN} &amp; \text{if } \hat{y}_{ui} = 0 \text{ and } y_i = 0 \\
+\text{FP} &amp; \text{if } \hat{y}_{ui} = 1 \text{ and } y_i = 0 \\
+\text{FN} &amp; \text{if } \hat{y}_{ui} = 0 \text{ and } y_i = 1
+\end{cases}\]</div>
+<h3 id="the-training-data-explosion">The Training Data Explosion<a class="headerlink" href="#the-training-data-explosion" title="Permanent link">&para;</a></h3>
+<p>For <span class="arithmatex">\(|\mathcal{L}|\)</span> labeled points and <span class="arithmatex">\(m\)</span> classifiers:
+- <strong>Traditional</strong>: <span class="arithmatex">\(|\mathcal{L}|\)</span> supervised examples
+- <strong>Cell-level</strong>: <span class="arithmatex">\(m \times |\mathcal{L}|\)</span> supervised examples</p>
+<p><strong>Example</strong>: With 10 classifiers and 500 labeled points, you get <strong>5,000 training examples</strong> for the polarity model.</p>
+<p>This is <strong>massive supervision</strong> for learning which classifiers are reliable where.</p>
+<hr />
+<h2 id="3-what-can-a-polarity-model-learn">3. What Can a Polarity Model Learn?<a class="headerlink" href="#3-what-can-a-polarity-model-learn" title="Permanent link">&para;</a></h2>
+<h3 id="feature-space-for-cell-reliability">Feature Space for Cell Reliability<a class="headerlink" href="#feature-space-for-cell-reliability" title="Permanent link">&para;</a></h3>
+<p>For each cell <span class="arithmatex">\((u,i)\)</span>, we can extract features:</p>
+<p><strong>Classifier-specific features</strong>:
+- Overall accuracy of classifier <span class="arithmatex">\(u\)</span>
+- Calibration metrics (Brier score)
+- Model type and hyperparameters</p>
+<p><strong>Instance-specific features</strong>:
+- Input features <span class="arithmatex">\(x_i\)</span> (if available)
+- Difficulty indicators (ensemble variance)
+- Distance to training centroids</p>
+<p><strong>Cell-specific features</strong> (most powerful):
+- Probability value <span class="arithmatex">\(r_{ui}\)</span> itself
+- Distance from decision boundary: <span class="arithmatex">\(|r_{ui} - 0.5|\)</span>
+- Agreement with other classifiers: <span class="arithmatex">\(|r_{ui} - \bar{r}_i|\)</span>
+- Entropy of classifier's predictions: <span class="arithmatex">\(H_u\)</span></p>
+<h3 id="patterns-the-model-can-discover">Patterns the Model Can Discover<a class="headerlink" href="#patterns-the-model-can-discover" title="Permanent link">&para;</a></h3>
+<p>A well-trained polarity model learns:</p>
+<ol>
+<li><strong>Specialization</strong>: "Classifier A is reliable when feature <span class="arithmatex">\(X &gt; 0.7\)</span>"</li>
+<li><strong>Overconfidence</strong>: "Classifier B's predictions <span class="arithmatex">\(&gt; 0.9\)</span> are often FPs"</li>
+<li><strong>Underconfidence</strong>: "Classifier C's predictions around 0.6 are actually very reliable"</li>
+<li><strong>Complementarity</strong>: "When classifiers A and B disagree, trust A on subtype X, B on subtype Y"</li>
+</ol>
+<p>This is essentially <strong>mixture-of-experts gating</strong> learned from data.</p>
+<hr />
+<h2 id="4-the-polarity-model-as-cell-level-supervision">4. The Polarity Model as Cell-Level Supervision<a class="headerlink" href="#4-the-polarity-model-as-cell-level-supervision" title="Permanent link">&para;</a></h2>
+<h3 id="formulation">Formulation<a class="headerlink" href="#formulation" title="Permanent link">&para;</a></h3>
+<p>Train a model <span class="arithmatex">\(h\)</span> that predicts cell reliability:
+$<span class="arithmatex">\(w_{ui} = h(\text{features}(u, i, r_{ui}, x_i))\)</span>$</p>
+<p>where <span class="arithmatex">\(w_{ui} \in [0,1]\)</span> represents trust in cell <span class="arithmatex">\((u,i)\)</span>.</p>
+<h3 id="training-on-labeled-data">Training on Labeled Data<a class="headerlink" href="#training-on-labeled-data" title="Permanent link">&para;</a></h3>
+<p>For <span class="arithmatex">\(i \in \mathcal{L}\)</span>, we know the true label <span class="arithmatex">\(y_i\)</span>, so we can compute:</p>
+<p><strong>Binary correctness</strong>:
+$<span class="arithmatex">\(t_{ui} = \mathbb{1}[\hat{y}_{ui} = y_i]\)</span>$</p>
+<p><strong>Continuous correctness</strong> (often better):
+$<span class="arithmatex">\(t_{ui} = 1 - |r_{ui} - y_i|\)</span>$</p>
+<p><strong>Training objective</strong>:
+$<span class="arithmatex">\(\min_h \sum_{i \in \mathcal{L}} \sum_{u=1}^m L(t_{ui}, w_{ui})\)</span>$</p>
+<p>where <span class="arithmatex">\(L\)</span> is squared error or binary cross-entropy.</p>
+<h3 id="integration-with-cf-ensemble">Integration with CF-Ensemble<a class="headerlink" href="#integration-with-cf-ensemble" title="Permanent link">&para;</a></h3>
+<p>Use learned <span class="arithmatex">\(w_{ui}\)</span> as confidence weights in reconstruction:</p>
+<div class="arithmatex">\[L_{\text{recon}} = \sum_{u,i} w_{ui} (r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)\]</div>
+<p><strong>Interpretation</strong>: Reconstruction focuses on cells the polarity model deems reliable.</p>
+<hr />
+<h2 id="5-the-test-set-challenge-the-pseudo-label-problem">5. The Test Set Challenge: The Pseudo-Label Problem<a class="headerlink" href="#5-the-test-set-challenge-the-pseudo-label-problem" title="Permanent link">&para;</a></h2>
+<h3 id="the-fundamental-issue">The Fundamental Issue<a class="headerlink" href="#the-fundamental-issue" title="Permanent link">&para;</a></h3>
+<p><strong>Problem</strong>: To compute polarity on test points <span class="arithmatex">\(i \in \mathcal{U}\)</span>, we need <span class="arithmatex">\(y_i\)</span>, which we don't have.</p>
+<p><strong>Naive solution</strong>: Use predicted label <span class="arithmatex">\(\tilde{y}_i\)</span> from ensemble.</p>
+<p><strong>The danger</strong>:
+$<span class="arithmatex">\(\tilde{p}_{ui} = \text{Polarity}(r_{ui}, \tilde{y}_i)\)</span>$</p>
+<p>This creates a <strong>circular dependency</strong>:
+1. Polarity model predicts which cells are reliable based on <span class="arithmatex">\(\tilde{y}_i\)</span>
+2. <span class="arithmatex">\(\tilde{y}_i\)</span> is computed by aggregating cells weighted by polarity
+3. System believes its own guesses</p>
+<h3 id="the-feedback-loop">The Feedback Loop<a class="headerlink" href="#the-feedback-loop" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Initial predictions → Pseudo-labels → Polarity estimates → 
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Weighted aggregation → Updated predictions → Updated pseudo-labels → ...
+</span></code></pre></div>
+<p><strong>Risk</strong>: If pseudo-labels are wrong in a structured way (e.g., systematically mislabeling a subpopulation), the feedback loop can <strong>amplify errors</strong> rather than correct them.</p>
+<p>This is the classic <strong>confirmation bias</strong> problem in semi-supervised learning.</p>
+<hr />
+<h2 id="6-principled-approach-soft-pseudo-labels-and-em">6. Principled Approach: Soft Pseudo-Labels and EM<a class="headerlink" href="#6-principled-approach-soft-pseudo-labels-and-em" title="Permanent link">&para;</a></h2>
+<h3 id="treating-labels-as-latent-variables">Treating Labels as Latent Variables<a class="headerlink" href="#treating-labels-as-latent-variables" title="Permanent link">&para;</a></h3>
+<p>The correct framework is <strong>Expectation-Maximization (EM)</strong>:
+- True labels <span class="arithmatex">\(y_i\)</span> for <span class="arithmatex">\(i \in \mathcal{U}\)</span> are <strong>latent variables</strong>
+- We observe probabilities <span class="arithmatex">\(r_{ui}\)</span>
+- We want to jointly infer labels and learn reliability</p>
+<h3 id="em-algorithm-for-polarity-model">EM Algorithm for Polarity Model<a class="headerlink" href="#em-algorithm-for-polarity-model" title="Permanent link">&para;</a></h3>
+<p><strong>E-step</strong> (Expectation): Compute soft pseudo-labels
+$<span class="arithmatex">\(q(y_i = 1) = \text{softmax}\left( \sum_u w_{ui} \cdot \log \frac{r_{ui}}{1-r_{ui}} \right)\)</span>$</p>
+<p>Use <strong>soft probabilities</strong>, not hard labels, to avoid brittle feedback.</p>
+<p><strong>M-step</strong> (Maximization): Update polarity model and CF factors
+$<span class="arithmatex">\(\min_{X,Y,h} \rho \sum_{u,i} w_{ui}(r_{ui} - x_u^\top y_i)^2 + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, \hat{p}_i) + \gamma \sum_{i \in \mathcal{U}} \text{CE}(q(y_i), \hat{p}_i)\)</span>$</p>
+<p>where <span class="arithmatex">\(\gamma &lt; 1\)</span> is a <strong>confidence penalty</strong> on pseudo-labels (e.g., <span class="arithmatex">\(\gamma = 0.1\)</span>).</p>
+<h3 id="regularization-strategies">Regularization Strategies<a class="headerlink" href="#regularization-strategies" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Soft labels only</strong>: Never convert <span class="arithmatex">\(q(y_i)\)</span> to hard 0/1</li>
+<li><strong>Entropy regularization</strong>: Penalize overconfident pseudo-labels</li>
+<li><strong>Conservative updates</strong>: Small learning rate on test set weights</li>
+<li><strong>Warm-up</strong>: Train on labeled data only for several epochs first</li>
+</ol>
+<hr />
+<h2 id="7-when-polarity-models-add-too-much-complexity">7. When Polarity Models Add Too Much Complexity<a class="headerlink" href="#7-when-polarity-models-add-too-much-complexity" title="Permanent link">&para;</a></h2>
+<h3 id="four-design-burdens">Four Design Burdens<a class="headerlink" href="#four-design-burdens" title="Permanent link">&para;</a></h3>
+<p><strong>1. Threshold dependence</strong>: Choice of <span class="arithmatex">\(\tau\)</span> affects TP/FP/TN/FN split
+- Different classifiers may need different thresholds
+- Binary polarity loses information about confidence levels</p>
+<p><strong>2. Calibration mismatch</strong>: Base models' probabilities may not be comparable
+- One model's 0.7 ≠ another model's 0.7
+- Requires pre-calibration step (Platt scaling, isotonic regression)</p>
+<p><strong>3. Distribution shift</strong>: Labeled region <span class="arithmatex">\(\neq\)</span> unlabeled region
+- Polarity model trained on <span class="arithmatex">\(\mathcal{L}\)</span> may not generalize to <span class="arithmatex">\(\mathcal{U}\)</span>
+- Features predictive of reliability on train may differ on test</p>
+<p><strong>4. Circularity</strong>: Polarity depends on <span class="arithmatex">\(\tilde{y}\)</span>, which depends on aggregation, which depends on polarity
+- Hard to debug when something goes wrong
+- Instability can arise from feedback loops</p>
+<h3 id="when-its-not-worth-it">When It's Not Worth It<a class="headerlink" href="#when-its-not-worth-it" title="Permanent link">&para;</a></h3>
+<p>Polarity models are <strong>overkill</strong> if:
+- ✗ Base models are already highly correlated (low diversity)
+- ✗ Probabilities are poorly calibrated across models
+- ✗ Limited labeled data (<span class="arithmatex">\(|\mathcal{L}| &lt; 100\)</span>)
+- ✗ Simple stacking already works well
+- ✗ Can't control feedback loop (no soft labels, uncertainty)</p>
+<hr />
+<h2 id="8-simpler-alternatives-that-capture-80-of-value">8. Simpler Alternatives That Capture 80% of Value<a class="headerlink" href="#8-simpler-alternatives-that-capture-80-of-value" title="Permanent link">&para;</a></h2>
+<h3 id="option-a-direct-reliability-weighting-recommended">Option A: Direct Reliability Weighting (Recommended)<a class="headerlink" href="#option-a-direct-reliability-weighting-recommended" title="Permanent link">&para;</a></h3>
+<p><strong>Idea</strong>: Learn continuous reliability weights without explicit TP/FP/TN/FN classification.</p>
+<p><strong>Model</strong>:
+$<span class="arithmatex">\(w_{ui} = h(r_{ui}, u, i, x_i) \in [0,1]\)</span>$</p>
+<p><strong>Training</strong> (on labeled data only):
+$<span class="arithmatex">\(\min_h \sum_{i \in \mathcal{L}} \sum_{u=1}^m (t_{ui} - w_{ui})^2\)</span>$</p>
+<p>where <span class="arithmatex">\(t_{ui} = 1 - |r_{ui} - y_i|\)</span> (continuous correctness).</p>
+<p><strong>Advantages</strong>:
+- ✅ No threshold needed
+- ✅ No pseudo-labels on test
+- ✅ Directly usable as <span class="arithmatex">\(C\)</span> in CF objective
+- ✅ Trained only on labeled data (no circularity)</p>
+<p><strong>Test-time usage</strong>: Compute <span class="arithmatex">\(w_{ui}\)</span> for test points using <span class="arithmatex">\(h\)</span>, <strong>without needing <span class="arithmatex">\(y_i\)</span></strong>.</p>
+<hr />
+<h3 id="option-b-instance-dependent-gating-mixture-of-experts">Option B: Instance-Dependent Gating (Mixture of Experts)<a class="headerlink" href="#option-b-instance-dependent-gating-mixture-of-experts" title="Permanent link">&para;</a></h3>
+<p><strong>Idea</strong>: For each instance, learn which classifiers to trust.</p>
+<p><strong>Model</strong>:
+$<span class="arithmatex">\(\alpha_{ui} = \text{softmax}_u(g(r_{ui}, u, i, x_i))\)</span>$
+$<span class="arithmatex">\(\hat{p}_i = \sum_{u=1}^m \alpha_{ui} \cdot r_{ui}\)</span>$</p>
+<p>where <span class="arithmatex">\(\sum_u \alpha_{ui} = 1\)</span>.</p>
+<p><strong>Training</strong>:
+$<span class="arithmatex">\(\min_g \sum_{i \in \mathcal{L}} \text{CE}(y_i, \hat{p}_i)\)</span>$</p>
+<p><strong>Advantages</strong>:
+- ✅ Input-dependent weighting (stronger than global weights)
+- ✅ Can be regularized with low-rank structure if needed
+- ✅ No explicit TP/FP/TN/FN needed
+- ✅ Standard stacking with attention mechanism</p>
+<hr />
+<h3 id="option-c-stay-with-kd-style-combined-objective">Option C: Stay with KD-Style Combined Objective<a class="headerlink" href="#option-c-stay-with-kd-style-combined-objective" title="Permanent link">&para;</a></h3>
+<p><strong>Idea</strong>: The combined reconstruction + supervised objective already addresses signal-noise separation.</p>
+<p><strong>Reminder</strong>:
+$<span class="arithmatex">\(\mathcal{L} = \rho \cdot L_{\text{recon}}(X,Y) + (1-\rho) \cdot L_{\text{sup}}(X,Y,\theta)\)</span>$</p>
+<p>with simple confidence weights (e.g., <span class="arithmatex">\(c_{ui} = |r_{ui} - 0.5|\)</span>).</p>
+<p><strong>Advantages</strong>:
+- ✅ Minimum complexity upgrade over pure MF
+- ✅ Already incorporates supervision
+- ✅ No additional models to train
+- ✅ Proven approach from knowledge distillation</p>
+<p><strong>When it's enough</strong>: If base models are reasonably diverse and well-calibrated, this may be all you need.</p>
+<hr />
+<h2 id="9-mathematical-formulation-option-a-in-detail">9. Mathematical Formulation: Option A in Detail<a class="headerlink" href="#9-mathematical-formulation-option-a-in-detail" title="Permanent link">&para;</a></h2>
+<h3 id="complete-reliability-weight-model">Complete Reliability Weight Model<a class="headerlink" href="#complete-reliability-weight-model" title="Permanent link">&para;</a></h3>
+<p><strong>Architecture</strong>: 
+$<span class="arithmatex">\(w_{ui} = \sigma(f_\phi(z_{ui}))\)</span>$</p>
+<p>where:
+- <span class="arithmatex">\(z_{ui} = [r_{ui}, |r_{ui} - 0.5|, |r_{ui} - \bar{r}_i|, \text{features}_u, \text{features}_i]\)</span> (feature vector)
+- <span class="arithmatex">\(f_\phi\)</span> is a neural network or gradient boosting model
+- <span class="arithmatex">\(\sigma\)</span> is sigmoid to ensure <span class="arithmatex">\(w_{ui} \in [0,1]\)</span></p>
+<p><strong>Training objective</strong>:
+$<span class="arithmatex">\(\min_\phi \sum_{i \in \mathcal{L}} \sum_{u=1}^m \left[ (t_{ui} - w_{ui})^2 + \beta \cdot \text{entropy}(w_{ui}) \right]\)</span>$</p>
+<p>where:
+- <span class="arithmatex">\(t_{ui} = 1 - |r_{ui} - y_i|\)</span> is continuous correctness
+- Entropy term <span class="arithmatex">\(-w_{ui} \log w_{ui} - (1-w_{ui})\log(1-w_{ui})\)</span> prevents overconfident weights</p>
+<p><strong>Integration with CF-Ensemble</strong>:
+$<span class="arithmatex">\(\mathcal{L}_{\text{full}} = \rho \sum_{u,i} w_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2) + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, g_\theta(\hat{r}_{\cdot i}))\)</span>$</p>
+<hr />
+<h2 id="10-when-polarity-models-are-worth-the-complexity">10. When Polarity Models Are Worth the Complexity<a class="headerlink" href="#10-when-polarity-models-are-worth-the-complexity" title="Permanent link">&para;</a></h2>
+<h3 id="ideal-conditions">Ideal Conditions<a class="headerlink" href="#ideal-conditions" title="Permanent link">&para;</a></h3>
+<p>Polarity models provide <strong>significant value</strong> when:</p>
+<p>✅ <strong>High base model diversity</strong>: 
+- Many classifiers (<span class="arithmatex">\(m \geq 10\)</span>)
+- Different architectures, features, hyperparameters
+- Clear complementarity (each excels in different regions)</p>
+<p>✅ <strong>Sufficient labeled data</strong>:
+- <span class="arithmatex">\(|\mathcal{L}| \times m \geq 1000\)</span> (cell-level examples)
+- Diverse coverage of data distribution</p>
+<p>✅ <strong>Stable pseudo-label generation</strong>:
+- Can use soft probabilities for test set
+- EM algorithm with conservative updates
+- Can afford computational cost of iterations</p>
+<p>✅ <strong>Transductive setting</strong>:
+- Test set known at training time
+- Can evaluate fairly against baselines with same access</p>
+<p>✅ <strong>Heterogeneous errors</strong>:
+- Base models make different types of mistakes
+- Some models overfit, others underfit
+- Regional specialization exists</p>
+<hr />
+<h3 id="example-use-case">Example Use Case<a class="headerlink" href="#example-use-case" title="Permanent link">&para;</a></h3>
+<p><strong>Medical diagnosis with multi-modal data</strong>:
+- <strong>Classifiers</strong>: Imaging CNN, lab value tree model, clinical notes LSTM, demographic LR, hybrid ensemble
+- <strong>Patterns</strong>: 
+  - CNN excels on visual pathologies but fails on lab-only cases
+  - Lab model good for metabolic conditions but misses imaging findings
+  - LSTM captures longitudinal patterns but overfits rare diseases
+- <strong>Benefit</strong>: Polarity model learns which modality to trust for each patient type</p>
+<p><strong>Result</strong>: Cell-level reliability weighting significantly outperforms global weighting or uniform confidence.</p>
+<hr />
+<h2 id="11-practical-implementation-strategy">11. Practical Implementation Strategy<a class="headerlink" href="#11-practical-implementation-strategy" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-start-simple-week-1-2">Phase 1: Start Simple (Week 1-2)<a class="headerlink" href="#phase-1-start-simple-week-1-2" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Baseline</strong>: CF-Ensemble with KD-style combined objective</li>
+<li>Use simple confidence: <span class="arithmatex">\(c_{ui} = |r_{ui} - 0.5|\)</span> or label-aware</li>
+<li>
+<p>Establish baseline performance</p>
+</li>
+<li>
+<p><strong>Quick win</strong>: Label-aware confidence on training set
+   <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">labeled_idx</span><span class="p">:</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="k">if</span> <span class="n">y</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        <span class="n">C</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">R</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>  <span class="c1"># Reward high predictions</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>        <span class="n">C</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">R</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span>  <span class="c1"># Reward low predictions</span>
+</span></code></pre></div></p>
+</li>
+</ol>
+<h3 id="phase-2-add-reliability-weighting-week-3-4">Phase 2: Add Reliability Weighting (Week 3-4)<a class="headerlink" href="#phase-2-add-reliability-weighting-week-3-4" title="Permanent link">&para;</a></h3>
+<ol>
+<li>
+<p><strong>Train reliability model</strong> (Option A):
+   <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Features</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">features</span> <span class="o">=</span> <span class="p">[</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">R</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>  <span class="c1"># Probabilities</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">R</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">(),</span>  <span class="c1"># Distance from 0.5</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">classifier_accuracy</span><span class="p">,</span> <span class="n">n</span><span class="p">),</span>  <span class="c1"># Per-classifier calibration</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">]</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1"># Targets (on labeled data only)</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="n">targets</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">R</span><span class="p">[:,</span> <span class="n">labeled</span><span class="p">]</span> <span class="o">-</span> <span class="n">y</span><span class="p">[</span><span class="n">labeled</span><span class="p">])</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c1"># Train</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="n">model</span> <span class="o">=</span> <span class="n">GradientBoostingRegressor</span><span class="p">()</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">targets</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="c1"># Predict weights for all cells</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="n">W</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">all_features</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>  <span class="c1"># Floor at 0.1</span>
+</span></code></pre></div></p>
+</li>
+<li>
+<p><strong>Use as confidence in CF</strong>:
+   <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">CFEnsembleTrainer</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">ensemble_data</span> <span class="o">=</span> <span class="n">EnsembleData</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">W</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">ensemble_data</span><span class="p">)</span>
+</span></code></pre></div></p>
+</li>
+</ol>
+<h3 id="phase-3-full-polarity-model-week-5-6-optional">Phase 3: Full Polarity Model (Week 5-6) - Optional<a class="headerlink" href="#phase-3-full-polarity-model-week-5-6-optional" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Implement EM with soft pseudo-labels</strong>:</li>
+<li>Only if Phase 2 shows insufficient improvement</li>
+<li>Only if you have computational resources for iterations</li>
+<li>Only if you can carefully tune regularization</li>
+</ol>
+<hr />
+<h2 id="12-evaluation-and-diagnostics">12. Evaluation and Diagnostics<a class="headerlink" href="#12-evaluation-and-diagnostics" title="Permanent link">&para;</a></h2>
+<h3 id="metrics-to-track">Metrics to Track<a class="headerlink" href="#metrics-to-track" title="Permanent link">&para;</a></h3>
+<p><strong>Reliability model quality</strong>:
+- <strong>Correlation</strong>: Between <span class="arithmatex">\(w_{ui}\)</span> and <span class="arithmatex">\(t_{ui}\)</span> on held-out labeled data
+- <strong>AUC</strong>: Treating <span class="arithmatex">\(w_{ui}\)</span> as prediction of binary correctness <span class="arithmatex">\(\mathbb{1}[|\hat{y}_{ui} - y_i| = 0]\)</span></p>
+<p><strong>CF-Ensemble performance</strong>:
+- <strong>With vs without reliability weights</strong>: Compare ROC-AUC
+- <strong>Weight entropy</strong>: <span class="arithmatex">\(H = -\sum_{u,i} w_{ui} \log w_{ui}\)</span>
+  - Too low → overconfident (possibly overfitting)
+  - Too high → not selective enough (close to uniform)</p>
+<p><strong>Visualization</strong>:
+- <strong>Heatmap</strong> of <span class="arithmatex">\(W\)</span>: Do high-weight cells cluster meaningfully?
+- <strong>Per-classifier distributions</strong>: <span class="arithmatex">\(w_{u\cdot}\)</span> across instances
+- <strong>Per-instance distributions</strong>: <span class="arithmatex">\(w_{\cdot i}\)</span> across classifiers</p>
+<hr />
+<h2 id="13-comparison-simple-vs-advanced-confidence">13. Comparison: Simple vs. Advanced Confidence<a class="headerlink" href="#13-comparison-simple-vs-advanced-confidence" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Complexity</th>
+<th>Training Data</th>
+<th>Test Labels Needed</th>
+<th>Performance Gain</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Uniform</strong></td>
+<td>Minimal</td>
+<td>None</td>
+<td>No</td>
+<td>Baseline</td>
+</tr>
+<tr>
+<td><strong>Certainty</strong> (<span class="arithmatex">\(\|r-0.5\|\)</span>)</td>
+<td>Minimal</td>
+<td>None</td>
+<td>No</td>
+<td>Small (+2%)</td>
+</tr>
+<tr>
+<td><strong>Label-aware</strong> (train only)</td>
+<td>Low</td>
+<td><span class="arithmatex">\(\mathcal{L}\)</span></td>
+<td>No</td>
+<td>Moderate (+5%)</td>
+</tr>
+<tr>
+<td><strong>Reliability model</strong></td>
+<td>Medium</td>
+<td><span class="arithmatex">\(m \times \mathcal{L}\)</span></td>
+<td>No</td>
+<td>Large (+8-12%)</td>
+</tr>
+<tr>
+<td><strong>Full polarity + EM</strong></td>
+<td>High</td>
+<td><span class="arithmatex">\(m \times \mathcal{L}\)</span> + <span class="arithmatex">\(\mathcal{U}\)</span></td>
+<td>Pseudo</td>
+<td>Large? (+10-15%)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation</strong>: Start with <strong>reliability model</strong> (Option A). It captures most of the value with manageable complexity.</p>
+<hr />
+<h2 id="14-code-template-reliability-weight-model">14. Code Template: Reliability Weight Model<a class="headerlink" href="#14-code-template-reliability-weight-model" title="Permanent link">&para;</a></h2>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">sklearn.ensemble</span><span class="w"> </span><span class="kn">import</span> <span class="n">GradientBoostingRegressor</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">ReliabilityWeightModel</span><span class="p">:</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Learn cell-level reliability weights from labeled data.&quot;&quot;&quot;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_estimators</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">learning_rate</span><span class="o">=</span><span class="mf">0.1</span><span class="p">):</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">GradientBoostingRegressor</span><span class="p">(</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>            <span class="n">n_estimators</span><span class="o">=</span><span class="n">n_estimators</span><span class="p">,</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>            <span class="n">learning_rate</span><span class="o">=</span><span class="n">learning_rate</span><span class="p">,</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>            <span class="n">max_depth</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>            <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        <span class="p">)</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">extract_features</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">classifier_stats</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="sd">        Extract features for each cell (u, i).</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>
+</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a><span class="sd">        Parameters:</span>
+</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a><span class="sd">        - R: Probability matrix (m × n)</span>
+</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="sd">        - classifier_stats: Optional dict with per-classifier metrics</span>
+</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>
+</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="sd">        Returns:</span>
+</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="sd">        - features: (m*n × d) feature matrix</span>
+</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>        <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>
+</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>        <span class="n">features</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
+</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>        <span class="c1"># Cell-specific features</span>
+</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>  <span class="c1"># Raw probability</span>
+</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">R</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">())</span>  <span class="c1"># Distance from threshold</span>
+</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>
+</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>        <span class="c1"># Instance agreement</span>
+</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>        <span class="n">R_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># (n,)</span>
+</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>        <span class="n">R_std</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># (n,)</span>
+</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">R_mean</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>  <span class="c1"># Broadcast to (m*n,)</span>
+</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>        <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">R_std</span><span class="p">,</span> <span class="n">m</span><span class="p">))</span>
+</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>
+</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>        <span class="c1"># Classifier statistics</span>
+</span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>        <span class="k">if</span> <span class="n">classifier_stats</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-4-42"><a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>            <span class="k">for</span> <span class="n">stat_name</span><span class="p">,</span> <span class="n">stat_values</span> <span class="ow">in</span> <span class="n">classifier_stats</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="__span-4-43"><a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>                <span class="n">features</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">stat_values</span><span class="p">,</span> <span class="n">n</span><span class="p">))</span>
+</span><span id="__span-4-44"><a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>
+</span><span id="__span-4-45"><a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a>        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">column_stack</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span><span id="__span-4-46"><a id="__codelineno-4-46" name="__codelineno-4-46" href="#__codelineno-4-46"></a>
+</span><span id="__span-4-47"><a id="__codelineno-4-47" name="__codelineno-4-47" href="#__codelineno-4-47"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">fit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">labeled_idx</span><span class="p">):</span>
+</span><span id="__span-4-48"><a id="__codelineno-4-48" name="__codelineno-4-48" href="#__codelineno-4-48"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-4-49"><a id="__codelineno-4-49" name="__codelineno-4-49" href="#__codelineno-4-49"></a><span class="sd">        Train reliability model on labeled data.</span>
+</span><span id="__span-4-50"><a id="__codelineno-4-50" name="__codelineno-4-50" href="#__codelineno-4-50"></a>
+</span><span id="__span-4-51"><a id="__codelineno-4-51" name="__codelineno-4-51" href="#__codelineno-4-51"></a><span class="sd">        Parameters:</span>
+</span><span id="__span-4-52"><a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a><span class="sd">        - R: Probability matrix (m × n)</span>
+</span><span id="__span-4-53"><a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a><span class="sd">        - labels: Ground truth (n,) with NaN for unlabeled</span>
+</span><span id="__span-4-54"><a id="__codelineno-4-54" name="__codelineno-4-54" href="#__codelineno-4-54"></a><span class="sd">        - labeled_idx: Boolean mask for labeled points</span>
+</span><span id="__span-4-55"><a id="__codelineno-4-55" name="__codelineno-4-55" href="#__codelineno-4-55"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-4-56"><a id="__codelineno-4-56" name="__codelineno-4-56" href="#__codelineno-4-56"></a>        <span class="n">m</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">R</span><span class="o">.</span><span class="n">shape</span>
+</span><span id="__span-4-57"><a id="__codelineno-4-57" name="__codelineno-4-57" href="#__codelineno-4-57"></a>
+</span><span id="__span-4-58"><a id="__codelineno-4-58" name="__codelineno-4-58" href="#__codelineno-4-58"></a>        <span class="c1"># Extract features for labeled cells only</span>
+</span><span id="__span-4-59"><a id="__codelineno-4-59" name="__codelineno-4-59" href="#__codelineno-4-59"></a>        <span class="n">R_labeled</span> <span class="o">=</span> <span class="n">R</span><span class="p">[:,</span> <span class="n">labeled_idx</span><span class="p">]</span>
+</span><span id="__span-4-60"><a id="__codelineno-4-60" name="__codelineno-4-60" href="#__codelineno-4-60"></a>        <span class="n">y_labeled</span> <span class="o">=</span> <span class="n">labels</span><span class="p">[</span><span class="n">labeled_idx</span><span class="p">]</span>
+</span><span id="__span-4-61"><a id="__codelineno-4-61" name="__codelineno-4-61" href="#__codelineno-4-61"></a>
+</span><span id="__span-4-62"><a id="__codelineno-4-62" name="__codelineno-4-62" href="#__codelineno-4-62"></a>        <span class="c1"># Compute features</span>
+</span><span id="__span-4-63"><a id="__codelineno-4-63" name="__codelineno-4-63" href="#__codelineno-4-63"></a>        <span class="n">features_all</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_features</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
+</span><span id="__span-4-64"><a id="__codelineno-4-64" name="__codelineno-4-64" href="#__codelineno-4-64"></a>
+</span><span id="__span-4-65"><a id="__codelineno-4-65" name="__codelineno-4-65" href="#__codelineno-4-65"></a>        <span class="c1"># Mask for labeled cells</span>
+</span><span id="__span-4-66"><a id="__codelineno-4-66" name="__codelineno-4-66" href="#__codelineno-4-66"></a>        <span class="n">labeled_cell_mask</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">labeled_idx</span><span class="p">,</span> <span class="n">m</span><span class="p">)</span>
+</span><span id="__span-4-67"><a id="__codelineno-4-67" name="__codelineno-4-67" href="#__codelineno-4-67"></a>        <span class="n">features_labeled</span> <span class="o">=</span> <span class="n">features_all</span><span class="p">[</span><span class="n">labeled_cell_mask</span><span class="p">]</span>
+</span><span id="__span-4-68"><a id="__codelineno-4-68" name="__codelineno-4-68" href="#__codelineno-4-68"></a>
+</span><span id="__span-4-69"><a id="__codelineno-4-69" name="__codelineno-4-69" href="#__codelineno-4-69"></a>        <span class="c1"># Compute targets: continuous correctness</span>
+</span><span id="__span-4-70"><a id="__codelineno-4-70" name="__codelineno-4-70" href="#__codelineno-4-70"></a>        <span class="n">targets</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">R_labeled</span> <span class="o">-</span> <span class="n">y_labeled</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+</span><span id="__span-4-71"><a id="__codelineno-4-71" name="__codelineno-4-71" href="#__codelineno-4-71"></a>
+</span><span id="__span-4-72"><a id="__codelineno-4-72" name="__codelineno-4-72" href="#__codelineno-4-72"></a>        <span class="c1"># Train</span>
+</span><span id="__span-4-73"><a id="__codelineno-4-73" name="__codelineno-4-73" href="#__codelineno-4-73"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">features_labeled</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</span><span id="__span-4-74"><a id="__codelineno-4-74" name="__codelineno-4-74" href="#__codelineno-4-74"></a>
+</span><span id="__span-4-75"><a id="__codelineno-4-75" name="__codelineno-4-75" href="#__codelineno-4-75"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span><span id="__span-4-76"><a id="__codelineno-4-76" name="__codelineno-4-76" href="#__codelineno-4-76"></a>
+</span><span id="__span-4-77"><a id="__codelineno-4-77" name="__codelineno-4-77" href="#__codelineno-4-77"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">predict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">R</span><span class="p">,</span> <span class="n">classifier_stats</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+</span><span id="__span-4-78"><a id="__codelineno-4-78" name="__codelineno-4-78" href="#__codelineno-4-78"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-4-79"><a id="__codelineno-4-79" name="__codelineno-4-79" href="#__codelineno-4-79"></a><span class="sd">        Predict reliability weights for all cells.</span>
+</span><span id="__span-4-80"><a id="__codelineno-4-80" name="__codelineno-4-80" href="#__codelineno-4-80"></a>
+</span><span id="__span-4-81"><a id="__codelineno-4-81" name="__codelineno-4-81" href="#__codelineno-4-81"></a><span class="sd">        Parameters:</span>
+</span><span id="__span-4-82"><a id="__codelineno-4-82" name="__codelineno-4-82" href="#__codelineno-4-82"></a><span class="sd">        - R: Probability matrix (m × n)</span>
+</span><span id="__span-4-83"><a id="__codelineno-4-83" name="__codelineno-4-83" href="#__codelineno-4-83"></a><span class="sd">        - classifier_stats: Optional classifier statistics</span>
+</span><span id="__span-4-84"><a id="__codelineno-4-84" name="__codelineno-4-84" href="#__codelineno-4-84"></a>
+</span><span id="__span-4-85"><a id="__codelineno-4-85" name="__codelineno-4-85" href="#__codelineno-4-85"></a><span class="sd">        Returns:</span>
+</span><span id="__span-4-86"><a id="__codelineno-4-86" name="__codelineno-4-86" href="#__codelineno-4-86"></a><span class="sd">        - W: Reliability weights (m × n)</span>
+</span><span id="__span-4-87"><a id="__codelineno-4-87" name="__codelineno-4-87" href="#__codelineno-4-87"></a><span class="sd">        &quot;&quot;&quot;</span>
+</span><span id="__span-4-88"><a id="__codelineno-4-88" name="__codelineno-4-88" href="#__codelineno-4-88"></a>        <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extract_features</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">classifier_stats</span><span class="p">)</span>
+</span><span id="__span-4-89"><a id="__codelineno-4-89" name="__codelineno-4-89" href="#__codelineno-4-89"></a>        <span class="n">weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+</span><span id="__span-4-90"><a id="__codelineno-4-90" name="__codelineno-4-90" href="#__codelineno-4-90"></a>
+</span><span id="__span-4-91"><a id="__codelineno-4-91" name="__codelineno-4-91" href="#__codelineno-4-91"></a>        <span class="c1"># Clip to [0.1, 1.0] to avoid zero weights</span>
+</span><span id="__span-4-92"><a id="__codelineno-4-92" name="__codelineno-4-92" href="#__codelineno-4-92"></a>        <span class="n">weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+</span><span id="__span-4-93"><a id="__codelineno-4-93" name="__codelineno-4-93" href="#__codelineno-4-93"></a>
+</span><span id="__span-4-94"><a id="__codelineno-4-94" name="__codelineno-4-94" href="#__codelineno-4-94"></a>        <span class="k">return</span> <span class="n">weights</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">R</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</span><span id="__span-4-95"><a id="__codelineno-4-95" name="__codelineno-4-95" href="#__codelineno-4-95"></a>
+</span><span id="__span-4-96"><a id="__codelineno-4-96" name="__codelineno-4-96" href="#__codelineno-4-96"></a><span class="c1"># Usage</span>
+</span><span id="__span-4-97"><a id="__codelineno-4-97" name="__codelineno-4-97" href="#__codelineno-4-97"></a><span class="n">rel_model</span> <span class="o">=</span> <span class="n">ReliabilityWeightModel</span><span class="p">()</span>
+</span><span id="__span-4-98"><a id="__codelineno-4-98" name="__codelineno-4-98" href="#__codelineno-4-98"></a><span class="n">rel_model</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">labeled_idx</span><span class="p">)</span>
+</span><span id="__span-4-99"><a id="__codelineno-4-99" name="__codelineno-4-99" href="#__codelineno-4-99"></a><span class="n">W</span> <span class="o">=</span> <span class="n">rel_model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">R</span><span class="p">)</span>
+</span><span id="__span-4-100"><a id="__codelineno-4-100" name="__codelineno-4-100" href="#__codelineno-4-100"></a>
+</span><span id="__span-4-101"><a id="__codelineno-4-101" name="__codelineno-4-101" href="#__codelineno-4-101"></a><span class="c1"># Use W as confidence in CF-Ensemble</span>
+</span><span id="__span-4-102"><a id="__codelineno-4-102" name="__codelineno-4-102" href="#__codelineno-4-102"></a><span class="n">ensemble_data</span> <span class="o">=</span> <span class="n">EnsembleData</span><span class="p">(</span><span class="n">R</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">C</span><span class="o">=</span><span class="n">W</span><span class="p">)</span>
+</span><span id="__span-4-103"><a id="__codelineno-4-103" name="__codelineno-4-103" href="#__codelineno-4-103"></a><span class="n">trainer</span> <span class="o">=</span> <span class="n">CFEnsembleTrainer</span><span class="p">(</span><span class="n">rho</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+</span><span id="__span-4-104"><a id="__codelineno-4-104" name="__codelineno-4-104" href="#__codelineno-4-104"></a><span class="n">trainer</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">ensemble_data</span><span class="p">)</span>
+</span></code></pre></div>
+<hr />
+<h2 id="15-research-directions-and-open-questions">15. Research Directions and Open Questions<a class="headerlink" href="#15-research-directions-and-open-questions" title="Permanent link">&para;</a></h2>
+<h3 id="theoretical-questions">Theoretical Questions<a class="headerlink" href="#theoretical-questions" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Generalization bounds</strong>: How does reliability model generalization affect CF-Ensemble performance?</li>
+<li><strong>Identifiability</strong>: Are learned weights unique? Can we distinguish true reliability from random correlation?</li>
+<li><strong>Sample complexity</strong>: How many labeled examples needed per cell type?</li>
+</ol>
+<h3 id="algorithmic-improvements">Algorithmic Improvements<a class="headerlink" href="#algorithmic-improvements" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Multi-task learning</strong>: Share reliability model across related datasets</li>
+<li><strong>Active learning</strong>: Which cells should we label to maximally improve weight estimates?</li>
+<li><strong>Online updates</strong>: Adapt weights as new data arrives</li>
+</ol>
+<h3 id="extensions">Extensions<a class="headerlink" href="#extensions" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Regression</strong>: Extend from binary to continuous targets</li>
+<li><strong>Multi-class</strong>: Polarity for K-way classification</li>
+<li><strong>Structured outputs</strong>: Sequence, graph, or image prediction</li>
+</ol>
+<hr />
+<h2 id="16-connection-to-related-work">16. Connection to Related Work<a class="headerlink" href="#16-connection-to-related-work" title="Permanent link">&para;</a></h2>
+<h3 id="mixture-of-experts-moe">Mixture of Experts (MoE)<a class="headerlink" href="#mixture-of-experts-moe" title="Permanent link">&para;</a></h3>
+<p>Polarity models are <strong>learned gating</strong> in MoE:
+- <strong>Gating network</strong>: <span class="arithmatex">\(g(x_i) \to \alpha_{ui}\)</span> (which expert to trust)
+- <strong>Polarity model</strong>: <span class="arithmatex">\(h(r_{ui}, x_i) \to w_{ui}\)</span> (cell-level trust)</p>
+<p><strong>Difference</strong>: Polarity uses base model outputs <span class="arithmatex">\(r_{ui}\)</span> as features, MoE uses inputs <span class="arithmatex">\(x_i\)</span>.</p>
+<h3 id="stacking-with-meta-features">Stacking with Meta-Features<a class="headerlink" href="#stacking-with-meta-features" title="Permanent link">&para;</a></h3>
+<p>Standard stacking:
+$<span class="arithmatex">\(\hat{p}_i = g([r_{1i}, \ldots, r_{mi}])\)</span>$</p>
+<p>Polarity-aware stacking:
+$<span class="arithmatex">\(\hat{p}_i = g([r_{1i}, \ldots, r_{mi}, w_{1i}, \ldots, w_{mi}])\)</span>$</p>
+<p><strong>Benefit</strong>: Meta-learner sees both predictions and reliability estimates.</p>
+<h3 id="calibration-and-uncertainty">Calibration and Uncertainty<a class="headerlink" href="#calibration-and-uncertainty" title="Permanent link">&para;</a></h3>
+<p>Polarity model can incorporate:
+- <strong>Platt scaling</strong>: Pre-calibrate base models
+- <strong>Epistemic uncertainty</strong>: Model prediction variance
+- <strong>Aleatoric uncertainty</strong>: Inherent label noise</p>
+<hr />
+<h2 id="17-decision-framework-should-you-use-polarity-models">17. Decision Framework: Should You Use Polarity Models?<a class="headerlink" href="#17-decision-framework-should-you-use-polarity-models" title="Permanent link">&para;</a></h2>
+<h3 id="decision-tree">Decision Tree<a class="headerlink" href="#decision-tree" title="Permanent link">&para;</a></h3>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>START: Do you have diverse base models (m ≥ 10)?
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>├─ NO → Stick with simple confidence (label-aware or certainty)
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>└─ YES → Do you have sufficient labeled data (m×|L| ≥ 1000)?
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    ├─ NO → Use label-aware confidence on training set
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    └─ YES → Is there clear complementarity in errors?
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        ├─ NO → Try reliability model, but may not help much
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        └─ YES → Can you afford computational cost?
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>            ├─ NO → Use reliability model (Option A)
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>            └─ YES → Consider full polarity + EM (Option C)
+</span></code></pre></div>
+<hr />
+<h2 id="18-pragmatic-recommendation">18. Pragmatic Recommendation<a class="headerlink" href="#18-pragmatic-recommendation" title="Permanent link">&para;</a></h2>
+<h3 id="the-goldilocks-approach">The Goldilocks Approach<a class="headerlink" href="#the-goldilocks-approach" title="Permanent link">&para;</a></h3>
+<p><strong>Too simple</strong>: Uniform confidence <span class="arithmatex">\(c_{ui} = 1\)</span>
+- Misses opportunity to emphasize reliable cells</p>
+<p><strong>Just right</strong>: <strong>Reliability weight model</strong> (Option A)
+- Cell-level supervision (<span class="arithmatex">\(m \times |\mathcal{L}|\)</span> examples)
+- No pseudo-labels needed
+- Directly integrates with CF-Ensemble
+- Trained only on labeled data (stable)</p>
+<p><strong>Too complex</strong>: Full polarity model with EM
+- Pseudo-label feedback loops
+- Calibration challenges
+- Debugging difficulty
+- Marginal gains over reliability model</p>
+<hr />
+<h2 id="19-implementation-priority">19. Implementation Priority<a class="headerlink" href="#19-implementation-priority" title="Permanent link">&para;</a></h2>
+<h3 id="recommended-sequence">Recommended Sequence<a class="headerlink" href="#recommended-sequence" title="Permanent link">&para;</a></h3>
+<p><strong>Phase 1</strong> (MVP - Week 4):
+1. ✅ CF-Ensemble with simple confidence
+2. ✅ Establish baseline performance</p>
+<p><strong>Phase 2</strong> (First enhancement - Week 5-6):
+3. ✅ Add reliability weight model (Option A)
+4. ✅ Compare with baseline
+5. ✅ If +5% improvement or more → success</p>
+<p><strong>Phase 3</strong> (Optional - Week 7+):
+6. ⚠️ Only if Phase 2 insufficient
+7. ⚠️ Full polarity model with soft pseudo-labels
+8. ⚠️ Carefully tune EM algorithm</p>
+<hr />
+<h2 id="20-summary">20. Summary<a class="headerlink" href="#20-summary" title="Permanent link">&para;</a></h2>
+<h3 id="key-takeaways">Key Takeaways<a class="headerlink" href="#key-takeaways" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Cell-level reliability</strong> is the missing ingredient in pure matrix factorization</li>
+<li><strong>Massive supervision</strong>: <span class="arithmatex">\(m \times |\mathcal{L}|\)</span> training examples available</li>
+<li><strong>Simpler is often better</strong>: Reliability weights (Option A) capture 80% of value</li>
+<li><strong>Full polarity models</strong> add complexity that may not be worth the gain</li>
+<li><strong>No pseudo-labels on test</strong>: Avoid circular dependencies when possible</li>
+</ol>
+<h3 id="the-core-insight">The Core Insight<a class="headerlink" href="#the-core-insight" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>Trust varies per (classifier, instance) pair. Learn that trust from labeled data. Use it to weight reconstruction.</strong></p>
+</blockquote>
+<p>This is the pragmatic evolution of the polarity model idea: keep the "massive supervision" benefit, avoid the "pseudo-label hallucination" risk.</p>
+<hr />
+<h2 id="21-conclusion">21. Conclusion<a class="headerlink" href="#21-conclusion" title="Permanent link">&para;</a></h2>
+<p>The polarity model concept—learning which cells in the probability matrix are reliable—is powerful. However, the <strong>full TP/FP/TN/FN prediction on test data</strong> introduces complexity and instability through pseudo-labels.</p>
+<p>The <strong>reliability weight model</strong> (Option A) captures the essential insight:
+- ✅ Cell-level supervision from labeled data
+- ✅ Direct integration with CF-Ensemble
+- ✅ No circular dependencies
+- ✅ Manageable complexity</p>
+<p><strong>Start here</strong>. Only escalate to full polarity models if evidence shows it's necessary.</p>
+<p>Your instinct was correct: "this makes CF ensemble learning too complex." The reliability weight variant gives you the power without the pain.</p>
+<hr />
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Jacobs, R., et al. (1991). <em>Adaptive Mixtures of Local Experts</em>. Neural Computation.</li>
+<li>Zhou, Z.-H. (2012). <em>Ensemble Methods: Foundations and Algorithms</em>. CRC Press.</li>
+<li>Blum, A., &amp; Mitchell, T. (1998). <em>Combining Labeled and Unlabeled Data with Co-Training</em>. COLT.</li>
+</ol>
+<hr />
+<p><strong>Next</strong>: See the <a href="../../examples_README.md">Examples</a> for how to add reliability weighting to your CF-Ensemble pipeline.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      Copyright &copy; 2026 CF-Ensemble Research Team
+    </div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/pleiadian53/cf-ensemble" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.sections", "navigation.expand", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.action.edit"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
