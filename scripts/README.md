@@ -29,6 +29,19 @@ Development and testing utilities:
 ./scripts/run_tests.sh tests/test_ensemble_data.py
 ```
 
+## Documentation Scripts (`docs/`)
+
+Keep LaTeX math rendering on both GitHub and the MkDocs site (see `docs/guides/mkdocs_mathjax_setup_guide.md`, "Math That Renders on GitHub Too"):
+
+- `docs/fix_math_for_github.py`: Rewrite math into GitHub-safe, TeX-equivalent form (`--check` to report only)
+- `docs/check_math_rendering.py`: Compare the TeX GitHub and MkDocs each hand to MathJax (needs `gh` CLI)
+
+**Usage**:
+```bash
+python scripts/docs/fix_math_for_github.py --check README.md docs/
+python scripts/docs/check_math_rendering.py -v README.md docs/
+```
+
 ## Training Scripts
 
 Scripts for running ensemble generation and CF-based ensemble learning:
