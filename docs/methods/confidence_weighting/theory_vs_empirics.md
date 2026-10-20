@@ -35,6 +35,7 @@ This document clarifies what aspects of confidence weighting effectiveness can b
 Let $p_{\text{correct}}$ be the probability a classifier is correct, and suppose $p_{\text{correct}} = 0.5 + \epsilon$ for small $\epsilon$.
 
 The **mutual information** between confidence score $c$ and correctness $y$ is:
+
 $$I(c; y) = H(y) - H(y | c)$$
 
 Where:
@@ -45,7 +46,7 @@ When classifiers are near-random ($\epsilon \approx 0$):
 - Confidence scores weakly correlate with correctness
 - $I(c; y) = O(\epsilon)$ bits
 
-**Implication**: With $\epsilon < 0.1$ (i.e., accuracy < 60%), the confidence signal is too weak to exploit effectively.
+**Implication**: With $\epsilon \lt 0.1$ (i.e., accuracy < 60%), the confidence signal is too weak to exploit effectively.
 
 **What we CANNOT prove**: The exact threshold (60% vs 55% vs 65%).
 
@@ -76,9 +77,10 @@ In practice, irreducible error (Bayes error) means actual improvement $\ll \delt
 Suppose all classifiers produce the same prediction: $r_{ui} = r_i$ for all $u$.
 
 Any weighted ensemble prediction is:
+
 $$\hat{y}_i = g\left(\sum_{u=1}^m w_u r_i\right) = g\left(r_i \sum_{u=1}^m w_u\right)$$
 
-Since $\sum_{u} w_u$ is constant across instances, this is equivalent to $\hat{y}_i = g(r_i)$ for some function $g$.
+Since $\sum_{u} w_u$ is constant across instances, this is equivalent to $\hat{y}_ i = g(r_i)$ for some function $g$.
 
 Thus, all weighting schemes produce the same predictions → no weighting can improve over uniform.
 

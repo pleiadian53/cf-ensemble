@@ -22,6 +22,7 @@ However, this power comes with complexity. We'll explore when it's worth it, sim
 ### The Problem with Global Weights
 
 Traditional ensemble methods assign **global weights** to classifiers:
+
 $$\hat{p}_i = \sum_{u=1}^m w_u \cdot r_{ui}$$
 
 Problems:
@@ -32,6 +33,7 @@ Problems:
 ### The Problem with Pure Reconstruction
 
 Matrix factorization with uniform confidence:
+
 $$L = \sum_{u,i} (r_{ui} - x_u^\top y_i)^2$$
 
 Problems:
@@ -58,19 +60,22 @@ Problems:
 
 ### Definition
 
-For a labeled point $i \in \mathcal{L}$ with true label $y_i \in \{0,1\}$ and classifier $u$'s probability $r_{ui}$:
+For a labeled point $i \in \mathcal{L}$ with true label $y_i \in \lbrace0,1\rbrace$ and classifier $u$'s probability $r_{ui}$:
 
 **Step 1**: Convert probability to binary prediction using threshold $\tau$ (typically 0.5):
+
 $$\hat{y}_{ui} = \mathbb{1}[r_{ui} \geq \tau]$$
 
-**Step 2**: Determine polarity based on $(\hat{y}_{ui}, y_i)$:
+**Step 2**: Determine polarity based on $(\hat{y}_ {ui}, y_i)$:
 
-$$p_{ui} = \begin{cases}
-\text{TP} & \text{if } \hat{y}_{ui} = 1 \text{ and } y_i = 1 \\
-\text{TN} & \text{if } \hat{y}_{ui} = 0 \text{ and } y_i = 0 \\
-\text{FP} & \text{if } \hat{y}_{ui} = 1 \text{ and } y_i = 0 \\
-\text{FN} & \text{if } \hat{y}_{ui} = 0 \text{ and } y_i = 1
-\end{cases}$$
+$$
+p_{ui} = \begin{cases}
+\text{TP} & \text{if } \hat{y}_ {ui} = 1 \text{ and } y_i = 1 \\
+\text{TN} & \text{if } \hat{y}_ {ui} = 0 \text{ and } y_i = 0 \\
+\text{FP} & \text{if } \hat{y}_ {ui} = 1 \text{ and } y_i = 0 \\
+\text{FN} & \text{if } \hat{y}_ {ui} = 0 \text{ and } y_i = 1
+\end{cases}
+$$
 
 ### The Training Data Explosion
 
@@ -103,15 +108,15 @@ For each cell $(u,i)$, we can extract features:
 **Cell-specific features** (most powerful):
 - Probability value $r_{ui}$ itself
 - Distance from decision boundary: $|r_{ui} - 0.5|$
-- Agreement with other classifiers: $|r_{ui} - \bar{r}_i|$
+- Agreement with other classifiers: $|r_{ui} - \bar{r}_ i|$
 - Entropy of classifier's predictions: $H_u$
 
 ### Patterns the Model Can Discover
 
 A well-trained polarity model learns:
 
-1. **Specialization**: "Classifier A is reliable when feature $X > 0.7$"
-2. **Overconfidence**: "Classifier B's predictions $> 0.9$ are often FPs"
+1. **Specialization**: "Classifier A is reliable when feature $X \gt 0.7$"
+2. **Overconfidence**: "Classifier B's predictions $\gt 0.9$ are often FPs"
 3. **Underconfidence**: "Classifier C's predictions around 0.6 are actually very reliable"
 4. **Complementarity**: "When classifiers A and B disagree, trust A on subtype X, B on subtype Y"
 
@@ -124,6 +129,7 @@ This is essentially **mixture-of-experts gating** learned from data.
 ### Formulation
 
 Train a model $h$ that predicts cell reliability:
+
 $$w_{ui} = h(\text{features}(u, i, r_{ui}, x_i))$$
 
 where $w_{ui} \in [0,1]$ represents trust in cell $(u,i)$.
@@ -133,12 +139,15 @@ where $w_{ui} \in [0,1]$ represents trust in cell $(u,i)$.
 For $i \in \mathcal{L}$, we know the true label $y_i$, so we can compute:
 
 **Binary correctness**:
+
 $$t_{ui} = \mathbb{1}[\hat{y}_{ui} = y_i]$$
 
 **Continuous correctness** (often better):
+
 $$t_{ui} = 1 - |r_{ui} - y_i|$$
 
 **Training objective**:
+
 $$\min_h \sum_{i \in \mathcal{L}} \sum_{u=1}^m L(t_{ui}, w_{ui})$$
 
 where $L$ is squared error or binary cross-entropy.
@@ -147,7 +156,7 @@ where $L$ is squared error or binary cross-entropy.
 
 Use learned $w_{ui}$ as confidence weights in reconstruction:
 
-$$L_{\text{recon}} = \sum_{u,i} w_{ui} (r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)$$
+$$L_{\text{recon}} = \sum_{u,i} w_{ui} (r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2)$$
 
 **Interpretation**: Reconstruction focuses on cells the polarity model deems reliable.
 
@@ -159,14 +168,15 @@ $$L_{\text{recon}} = \sum_{u,i} w_{ui} (r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|
 
 **Problem**: To compute polarity on test points $i \in \mathcal{U}$, we need $y_i$, which we don't have.
 
-**Naive solution**: Use predicted label $\tilde{y}_i$ from ensemble.
+**Naive solution**: Use predicted label $\tilde{y}_ i$ from ensemble.
 
 **The danger**:
+
 $$\tilde{p}_{ui} = \text{Polarity}(r_{ui}, \tilde{y}_i)$$
 
 This creates a **circular dependency**:
-1. Polarity model predicts which cells are reliable based on $\tilde{y}_i$
-2. $\tilde{y}_i$ is computed by aggregating cells weighted by polarity
+1. Polarity model predicts which cells are reliable based on $\tilde{y}_ i$
+2. $\tilde{y}_ i$ is computed by aggregating cells weighted by polarity
 3. System believes its own guesses
 
 ### The Feedback Loop
@@ -194,14 +204,16 @@ The correct framework is **Expectation-Maximization (EM)**:
 ### EM Algorithm for Polarity Model
 
 **E-step** (Expectation): Compute soft pseudo-labels
+
 $$q(y_i = 1) = \text{softmax}\left( \sum_u w_{ui} \cdot \log \frac{r_{ui}}{1-r_{ui}} \right)$$
 
 Use **soft probabilities**, not hard labels, to avoid brittle feedback.
 
 **M-step** (Maximization): Update polarity model and CF factors
+
 $$\min_{X,Y,h} \rho \sum_{u,i} w_{ui}(r_{ui} - x_u^\top y_i)^2 + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, \hat{p}_i) + \gamma \sum_{i \in \mathcal{U}} \text{CE}(q(y_i), \hat{p}_i)$$
 
-where $\gamma < 1$ is a **confidence penalty** on pseudo-labels (e.g., $\gamma = 0.1$).
+where $\gamma \lt 1$ is a **confidence penalty** on pseudo-labels (e.g., $\gamma = 0.1$).
 
 ### Regularization Strategies
 
@@ -237,7 +249,7 @@ where $\gamma < 1$ is a **confidence penalty** on pseudo-labels (e.g., $\gamma =
 Polarity models are **overkill** if:
 - ✗ Base models are already highly correlated (low diversity)
 - ✗ Probabilities are poorly calibrated across models
-- ✗ Limited labeled data ($|\mathcal{L}| < 100$)
+- ✗ Limited labeled data ($|\mathcal{L}| \lt 100$)
 - ✗ Simple stacking already works well
 - ✗ Can't control feedback loop (no soft labels, uncertainty)
 
@@ -250,9 +262,11 @@ Polarity models are **overkill** if:
 **Idea**: Learn continuous reliability weights without explicit TP/FP/TN/FN classification.
 
 **Model**:
+
 $$w_{ui} = h(r_{ui}, u, i, x_i) \in [0,1]$$
 
 **Training** (on labeled data only):
+
 $$\min_h \sum_{i \in \mathcal{L}} \sum_{u=1}^m (t_{ui} - w_{ui})^2$$
 
 where $t_{ui} = 1 - |r_{ui} - y_i|$ (continuous correctness).
@@ -272,12 +286,15 @@ where $t_{ui} = 1 - |r_{ui} - y_i|$ (continuous correctness).
 **Idea**: For each instance, learn which classifiers to trust.
 
 **Model**:
+
 $$\alpha_{ui} = \text{softmax}_u(g(r_{ui}, u, i, x_i))$$
+
 $$\hat{p}_i = \sum_{u=1}^m \alpha_{ui} \cdot r_{ui}$$
 
 where $\sum_u \alpha_{ui} = 1$.
 
 **Training**:
+
 $$\min_g \sum_{i \in \mathcal{L}} \text{CE}(y_i, \hat{p}_i)$$
 
 **Advantages**:
@@ -293,6 +310,7 @@ $$\min_g \sum_{i \in \mathcal{L}} \text{CE}(y_i, \hat{p}_i)$$
 **Idea**: The combined reconstruction + supervised objective already addresses signal-noise separation.
 
 **Reminder**:
+
 $$\mathcal{L} = \rho \cdot L_{\text{recon}}(X,Y) + (1-\rho) \cdot L_{\text{sup}}(X,Y,\theta)$$
 
 with simple confidence weights (e.g., $c_{ui} = |r_{ui} - 0.5|$).
@@ -312,14 +330,16 @@ with simple confidence weights (e.g., $c_{ui} = |r_{ui} - 0.5|$).
 ### Complete Reliability Weight Model
 
 **Architecture**: 
+
 $$w_{ui} = \sigma(f_\phi(z_{ui}))$$
 
 where:
-- $z_{ui} = [r_{ui}, |r_{ui} - 0.5|, |r_{ui} - \bar{r}_i|, \text{features}_u, \text{features}_i]$ (feature vector)
+- $z_{ui} = [r_{ui}, |r_{ui} - 0.5|, |r_{ui} - \bar{r}_ i|, \text{features}_ u, \text{features}_ i]$ (feature vector)
 - $f_\phi$ is a neural network or gradient boosting model
 - $\sigma$ is sigmoid to ensure $w_{ui} \in [0,1]$
 
 **Training objective**:
+
 $$\min_\phi \sum_{i \in \mathcal{L}} \sum_{u=1}^m \left[ (t_{ui} - w_{ui})^2 + \beta \cdot \text{entropy}(w_{ui}) \right]$$
 
 where:
@@ -327,7 +347,8 @@ where:
 - Entropy term $-w_{ui} \log w_{ui} - (1-w_{ui})\log(1-w_{ui})$ prevents overconfident weights
 
 **Integration with CF-Ensemble**:
-$$\mathcal{L}_{\text{full}} = \rho \sum_{u,i} w_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2) + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, g_\theta(\hat{r}_{\cdot i}))$$
+
+$$\mathcal{L}_{\text{full}} = \rho \sum_{u,i} w_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2) + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, g_\theta(\hat{r}_{\cdot i}))$$
 
 ---
 
@@ -438,7 +459,7 @@ Polarity models provide **significant value** when:
 
 **Reliability model quality**:
 - **Correlation**: Between $w_{ui}$ and $t_{ui}$ on held-out labeled data
-- **AUC**: Treating $w_{ui}$ as prediction of binary correctness $\mathbb{1}[|\hat{y}_{ui} - y_i| = 0]$
+- **AUC**: Treating $w_{ui}$ as prediction of binary correctness $\mathbb{1}[|\hat{y}_ {ui} - y_i| = 0]$
 
 **CF-Ensemble performance**:
 - **With vs without reliability weights**: Compare ROC-AUC
@@ -458,7 +479,7 @@ Polarity models provide **significant value** when:
 | Approach | Complexity | Training Data | Test Labels Needed | Performance Gain |
 |----------|------------|---------------|-------------------|------------------|
 | **Uniform** | Minimal | None | No | Baseline |
-| **Certainty** ($\|r-0.5\|$) | Minimal | None | No | Small (+2%) |
+| **Certainty** ($\Vert r-0.5\Vert$) | Minimal | None | No | Small (+2%) |
 | **Label-aware** (train only) | Low | $\mathcal{L}$ | No | Moderate (+5%) |
 | **Reliability model** | Medium | $m \times \mathcal{L}$ | No | Large (+8-12%) |
 | **Full polarity + EM** | High | $m \times \mathcal{L}$ + $\mathcal{U}$ | Pseudo | Large? (+10-15%) |
@@ -613,9 +634,11 @@ Polarity models are **learned gating** in MoE:
 ### Stacking with Meta-Features
 
 Standard stacking:
+
 $$\hat{p}_i = g([r_{1i}, \ldots, r_{mi}])$$
 
 Polarity-aware stacking:
+
 $$\hat{p}_i = g([r_{1i}, \ldots, r_{mi}, w_{1i}, \ldots, w_{mi}])$$
 
 **Benefit**: Meta-learner sees both predictions and reliability estimates.

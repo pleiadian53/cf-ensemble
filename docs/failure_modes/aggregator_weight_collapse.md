@@ -77,9 +77,11 @@ for iteration in range(max_iter):
 **Hypothesis 1: Conflicting Objectives**
 
 ALS minimizes:
-$$\mathcal{L}_{\text{ALS}} = \sum c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)$$
+
+$$\mathcal{L}_{\text{ALS}} = \sum c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2)$$
 
 Aggregator minimizes:
+
 $$\mathcal{L}_{\text{agg}} = \sum_{i \in \mathcal{L}} CE(y_i, \sigma(w^\top \hat{r}_i + b))$$
 
 These are optimized **separately** with **conflicting** gradients:

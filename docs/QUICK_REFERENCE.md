@@ -18,7 +18,7 @@ $$\boxed{\mathcal{L} = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\te
 
 ### Term 1: Reconstruction Loss
 
-$$L_{\text{recon}} = \sum_{u=1}^m \sum_{i=1}^n c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \left( \|X\|_F^2 + \|Y\|_F^2 \right)$$
+$$L_{\text{recon}} = \sum_{u=1}^m \sum_{i=1}^n c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \left( \Vert X\Vert_F^2 + \Vert Y\Vert_F^2 \right)$$
 
 **Purpose**: Faithfully reproduce probability matrix (all points)
 
@@ -29,6 +29,7 @@ $$L_{\text{recon}} = \sum_{u=1}^m \sum_{i=1}^n c_{ui}(r_{ui} - x_u^\top y_i)^2 +
 $$L_{\text{sup}} = \sum_{i \in \mathcal{L}} \text{CE}\left(y_i, g_\theta(\hat{r}_{\cdot i})\right)$$
 
 where:
+
 $$\text{CE}(y, \hat{p}) = -y \log \hat{p} - (1-y) \log(1-\hat{p})$$
 
 **Purpose**: Predict correct labels (labeled points only)
@@ -47,16 +48,16 @@ $$\text{CE}(y, \hat{p}) = -y \log \hat{p} - (1-y) \log(1-\hat{p})$$
 | $Y \in \mathbb{R}^{d \times n}$ | Instance latent factors | 20 × 1000 |
 | $x_u \in \mathbb{R}^d$ | Latent vector for classifier $u$ | dim 20 |
 | $y_i \in \mathbb{R}^d$ | Latent vector for point $i$ | dim 20 |
-| $\hat{r}_{ui} = x_u^\top y_i$ | Reconstructed probability | [0, 1] |
-| $C \in \mathbb{R}_+^{m \times n}$ | Confidence/reliability weights | 10 × 1000 |
+| $\hat{r}_ {ui} = x_u^\top y_i$ | Reconstructed probability | [0, 1] |
+| $C \in \mathbb{R}_ +^{m \times n}$ | Confidence/reliability weights | 10 × 1000 |
 | $c_{ui}$ | Trust in $r_{ui}$ | ≥ 0 |
-| $\mathcal{L} \subset \{1,\ldots,n\}$ | Labeled point indices | e.g., {1,...,500} |
-| $\mathcal{U} \subset \{1,\ldots,n\}$ | Unlabeled point indices | e.g., {501,...,1000} |
-| $y_i \in \{0,1\}$ | Ground truth label | 0 or 1 |
-| $\hat{p}_i \in [0,1]$ | Final predicted probability | [0, 1] |
+| $\mathcal{L} \subset \lbrace1,\ldots,n\rbrace$ | Labeled point indices | e.g., {1,...,500} |
+| $\mathcal{U} \subset \lbrace1,\ldots,n\rbrace$ | Unlabeled point indices | e.g., {501,...,1000} |
+| $y_i \in \lbrace0,1\rbrace$ | Ground truth label | 0 or 1 |
+| $\hat{p}_ i \in [0,1]$ | Final predicted probability | [0, 1] |
 | $g_\theta: \mathbb{R}^m \to [0,1]$ | Aggregation function | e.g., mean |
 | $\rho \in [0,1]$ | Trade-off parameter | 0.3 - 0.7 |
-| $\lambda > 0$ | Regularization strength | 0.01 - 0.1 |
+| $\lambda \gt 0$ | Regularization strength | 0.01 - 0.1 |
 | $d \in \mathbb{N}$ | Latent dimension | 10 - 50 |
 
 ---
@@ -67,15 +68,18 @@ Maps reconstructed probabilities to final prediction:
 
 $$\hat{p}_i = g_\theta(\hat{r}_{\cdot i})$$
 
-where $\hat{r}_{\cdot i} = [\hat{r}_{1i}, \ldots, \hat{r}_{mi}]^\top$
+where $\hat{r}_ {\cdot i} = [\hat{r}_ {1i}, \ldots, \hat{r}_ {mi}]^\top$
 
 ### Common Choices
 
 **Simple mean**:
+
 $$g(\hat{r}_{\cdot i}) = \frac{1}{m}\sum_{u=1}^m \hat{r}_{ui}$$
 
 **Weighted mean**:
+
 $$g_w(\hat{r}_{\cdot i}) = \sigma(w^\top \hat{r}_{\cdot i} + b)$$
+
 where $\sigma(z) = 1/(1+e^{-z})$
 
 ---
@@ -88,18 +92,24 @@ Weight which probability predictions to trust more during factorization.
 ### Strategies
 
 **1. Certainty-based** (default):
+
 $$c_{ui} = |r_{ui} - 0.5|$$
 
 **2. Label-aware** (for labeled data):
-$$c_{ui} = \begin{cases}
+
+$$
+c_{ui} = \begin{cases}
 r_{ui} & \text{if } y_i = 1 \\
 1 - r_{ui} & \text{if } y_i = 0
-\end{cases}$$
+\end{cases}
+$$
 
 **3. Calibration-based**:
+
 $$c_{ui} = 1 - \text{Brier}_u = 1 - \frac{1}{N}\sum_j (r_{uj} - y_j)^2$$
 
 **4. Agreement-based**:
+
 $$c_{ui} = 1 - \text{Var}_u(r_{\cdot i})$$
 
 ---
@@ -109,6 +119,7 @@ $$c_{ui} = 1 - \text{Var}_u(r_{\cdot i})$$
 ### Update Classifier Factors (fix $Y$)
 
 For each classifier $u$:
+
 $$x_u = \left( Y C_u Y^\top + \lambda I \right)^{-1} Y C_u r_u$$
 
 where:
@@ -118,6 +129,7 @@ where:
 ### Update Instance Factors (fix $X$)
 
 For each point $i$:
+
 $$y_i = \left( X C_i X^\top + \lambda I \right)^{-1} X C_i r_i$$
 
 where:
@@ -127,6 +139,7 @@ where:
 ### Update Aggregator (fix $X, Y$)
 
 Gradient descent on supervised loss:
+
 $$\theta \leftarrow \theta - \eta \nabla_\theta L_{\text{sup}}(X, Y, \theta)$$
 
 ---
@@ -158,16 +171,19 @@ Output: X (d × m), Y (d × n), θ
 
 ### On Training/Test Data (transductive)
 Given fitted $X, Y, \theta$:
+
 $$\hat{p}_i = g_\theta(X^\top y_i)$$
 
 ### On New Data (inductive)
 Given new point $i_{\text{new}}$ with predictions $r_{\cdot, i_{\text{new}}}$:
 
 1. Solve for latent factor:
+
    $$y_{i_{\text{new}}} = (X C X^\top + \lambda I)^{-1} X C r_{i_{\text{new}}}$$
 
 2. Predict:
-   $$\hat{p}_{i_{\text{new}}} = g_\theta(X^\top y_{i_{\text{new}}})$$
+
+   $$\hat{p}_ {i_{\text{new}}} = g_\theta(X^\top y_{i_{\text{new}}})$$
 
 ---
 
@@ -201,8 +217,8 @@ for rho in [0.3, 0.5, 0.7]:
 |--------|------------------------|-------------|
 | **Soft targets** | Teacher predictions $q_t$ | Probability matrix $R$ |
 | **Student** | Small neural network | Latent factors $X, Y$ |
-| **Soft loss** | $\text{KL}(q_t \| q_s)$ | $\sum c_{ui}(r_{ui} - x_u^\top y_i)^2$ |
-| **Hard loss** | $\text{CE}(y_g, q_s)$ | $\sum_{i \in \mathcal{L}} \text{CE}(y_i, g(\hat{r}_{\cdot i}))$ |
+| **Soft loss** | $\text{KL}(q_t \Vert q_s)$ | $\sum c_{ui}(r_{ui} - x_u^\top y_i)^2$ |
+| **Hard loss** | $\text{CE}(y_g, q_s)$ | $\sum_{i \in \mathcal{L}} \text{CE}(y_i, g(\hat{r}_ {\cdot i}))$ |
 | **Combined** | $\rho \cdot T^2 \cdot \text{KL} + (1-\rho) \cdot \text{CE}$ | $\rho \cdot L_{\text{recon}} + (1-\rho) \cdot L_{\text{sup}}$ |
 | **Key insight** | Match teacher + match labels | Reconstruct matrix + match labels |
 
@@ -226,7 +242,7 @@ Monitor separately on $\mathcal{L}$ and $\mathcal{U}$. Large gap suggests overfi
 
 Always compare against:
 1. Simple averaging: $\frac{1}{m}\sum_u r_{ui}$
-2. Best single model: $\max_u \text{AUC}_u$
+2. Best single model: $\max_u \text{AUC}_ u$
 3. Stacking: Logistic regression on $R$
 
 ---
@@ -259,7 +275,7 @@ All predictions treated equally. Use label-aware confidence for $\mathcal{L}$.
 Overfitting. Start with $d \approx \sqrt{m}$, tune down if needed.
 
 ### ❌ Forgetting regularization
-Latent factors explode. Always use $\lambda > 0$.
+Latent factors explode. Always use $\lambda \gt 0$.
 
 ### ❌ Not checking convergence
 Stopped too early or too late. Monitor loss curves.

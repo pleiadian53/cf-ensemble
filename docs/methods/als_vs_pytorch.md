@@ -7,6 +7,7 @@
 ## Executive Summary
 
 **The Combined Objective:**
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta)$$
 
 **Two Approaches:**
@@ -31,13 +32,14 @@ $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L
 ### Why Can't ALS Optimize the Full Loss?
 
 **The combined loss:**
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot \underbrace{\sum c_{ui}(r_{ui} - x_u^\top y_i)^2}_{\text{QUADRATIC}} + (1-\rho) \cdot \underbrace{\sum CE(y_i, \sigma(w^\top(X^\top y_i)))}_{\text{NON-QUADRATIC}}$$
 
 **ALS requires quadratic objectives** to get closed-form solutions:
 - Reconstruction loss: ✅ Quadratic in X and Y
 - Supervised loss: ❌ Contains $\sigma(\cdot)$ and $\log(\cdot)$ (non-quadratic)
 
-**Conclusion:** Cannot derive closed-form ALS for $\mathcal{L}_{\text{CF}}$.
+**Conclusion:** Cannot derive closed-form ALS for $\mathcal{L}_ {\text{CF}}$.
 
 **Analogy:** Similar to VAE - reconstruction + KL both have structure, but combined loss still needs gradient descent (no closed-form).
 
@@ -47,24 +49,28 @@ $$\mathcal{L}_{\text{CF}} = \rho \cdot \underbrace{\sum c_{ui}(r_{ui} - x_u^\top
 
 ### What It Actually Optimizes
 
-$$\mathcal{L}_{\text{approx}}(X, Y) = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)$$
+$$\mathcal{L}_{\text{approx}}(X, Y) = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2)$$
 
-where $\tilde{c}_{ui}$ is **label-aware**:
-$$\tilde{c}_{ui} = \begin{cases}
+where $\tilde{c}_ {ui}$ is **label-aware**:
+
+$$
+\tilde{c}_ {ui} = \begin{cases}
 c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot r_{ui}) & \text{if } y_i = 1 \\
 c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot (1 - r_{ui})) & \text{if } y_i = 0 \\
 c_{ui}^{\text{base}} & \text{if unlabeled}
-\end{cases}$$
+\end{cases}
+$$
 
 ### How It Approximates Supervision
 
-**Key insight:** Label-aware $\tilde{c}_{ui}$ encodes supervision signal:
-- High $\tilde{c}_{ui}$ when prediction agrees with label → ALS preserves it
-- Low $\tilde{c}_{ui}$ when prediction contradicts label → ALS discards it
+**Key insight:** Label-aware $\tilde{c}_ {ui}$ encodes supervision signal:
+- High $\tilde{c}_ {ui}$ when prediction agrees with label → ALS preserves it
+- Low $\tilde{c}_ {ui}$ when prediction contradicts label → ALS discards it
 
 **Mathematical connection:**
 
 The label-aware weighting adds an implicit term:
+
 $$\alpha \sum_{i \in \mathcal{L}} s_{ui} \cdot (r_{ui} - x_u^\top y_i)^2$$
 
 where $s_{ui} = r_{ui}$ if $y_i=1$, else $1-r_{ui}$ (supervision signal).
@@ -100,11 +106,11 @@ aggregator.fit(X.T @ Y, labels)
 **Advantages:**
 - ✅ **Fast**: O(d³) closed-form per factor
 - ✅ **Simple**: Pure NumPy, no autodiff
-- ✅ **Stable**: Each ALS step provably decreases $\mathcal{L}_{\text{approx}}$
+- ✅ **Stable**: Each ALS step provably decreases $\mathcal{L}_ {\text{approx}}$
 - ✅ **Interpretable**: Confidence weights show supervision influence
 
 **Disadvantages:**
-- ❌ **Approximate**: Not true gradient of $\mathcal{L}_{\text{CF}}$
+- ❌ **Approximate**: Not true gradient of $\mathcal{L}_ {\text{CF}}$
 - ❌ **Extra hyperparameter**: Need to tune $\alpha$
 - ❌ **Potential gap**: May be 5-15% worse PR-AUC than exact
 - ❌ **No GPU**: Limited by NumPy
@@ -116,6 +122,7 @@ aggregator.fit(X.T @ Y, labels)
 ### What It Optimizes
 
 The **true combined loss**:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta)$$
 
 ### How It Works
@@ -146,11 +153,13 @@ optimizer.step()  # X, Y, θ updated simultaneously
 
 **Key property:** All gradients computed w.r.t. **same unified loss**:
 
-$$\begin{align}
-\nabla_X \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_X L_{\text{recon}} + (1-\rho) \cdot \nabla_X L_{\text{sup}} \\
-\nabla_Y \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_Y L_{\text{recon}} + (1-\rho) \cdot \nabla_Y L_{\text{sup}} \\
-\nabla_\theta \mathcal{L}_{\text{CF}} &= (1-\rho) \cdot \nabla_\theta L_{\text{sup}}
-\end{align}$$
+$$
+\begin{align}
+\nabla_X \mathcal{L}_ {\text{CF}} &= \rho \cdot \nabla_X L_{\text{recon}} + (1-\rho) \cdot \nabla_X L_{\text{sup}} \\
+\nabla_Y \mathcal{L}_ {\text{CF}} &= \rho \cdot \nabla_Y L_{\text{recon}} + (1-\rho) \cdot \nabla_Y L_{\text{sup}} \\
+\nabla_\theta \mathcal{L}_ {\text{CF}} &= (1-\rho) \cdot \nabla_\theta L_{\text{sup}}
+\end{align}
+$$
 
 Both terms contribute to X and Y updates - **no approximation**!
 
@@ -177,7 +186,7 @@ predictions = trainer.predict()
 ### Pros & Cons
 
 **Advantages:**
-- ✅ **Exact**: True gradient of $\mathcal{L}_{\text{CF}}$
+- ✅ **Exact**: True gradient of $\mathcal{L}_ {\text{CF}}$
 - ✅ **Unified**: All parameters updated consistently
 - ✅ **GPU acceleration**: 10-100x speedup on large data
 - ✅ **Modern optimizers**: Adam, AdamW with adaptive learning rates
@@ -229,7 +238,7 @@ predictions = trainer.predict()
 | Property | ALS | PyTorch |
 |----------|-----|---------|
 | Iterations to converge | 50-200 | 50-200 |
-| Convergence guarantee | For $\mathcal{L}_{\text{approx}}$ | For $\mathcal{L}_{\text{CF}}$ (with LR schedule) |
+| Convergence guarantee | For $\mathcal{L}_ {\text{approx}}$ | For $\mathcal{L}_ {\text{CF}}$ (with LR schedule) |
 | Sensitive to init | Low | Medium |
 | Requires tuning | Minimal (λ, α) | More (LR, optimizer, schedule) |
 
@@ -240,7 +249,8 @@ predictions = trainer.predict()
 ### How is KD Optimized in Practice?
 
 **Loss:**
-$$\mathcal{L}_{\text{KD}} = \rho \cdot KL(q_{\text{teacher}} \| q_{\text{student}}) + (1-\rho) \cdot CE(y, q_{\text{student}})$$
+
+$$\mathcal{L}_{\text{KD}} = \rho \cdot KL(q_{\text{teacher}} \Vert q_{\text{student}}) + (1-\rho) \cdot CE(y, q_{\text{student}})$$
 
 **Optimization:**
 ```python
@@ -460,12 +470,12 @@ CF-PyTorch: 1-3 seconds  (faster than ALS!)
 ### Convergence Guarantees
 
 **ALS + Label-Aware:**
-- Converges to local minimum of $\mathcal{L}_{\text{approx}}$
-- Gap from true $\mathcal{L}_{\text{CF}}$ depends on α tuning
+- Converges to local minimum of $\mathcal{L}_ {\text{approx}}$
+- Gap from true $\mathcal{L}_ {\text{CF}}$ depends on α tuning
 - Expected gap: 5-15% in PR-AUC
 
 **PyTorch:**
-- With proper learning rate schedule, converges to local minimum of $\mathcal{L}_{\text{CF}}$
+- With proper learning rate schedule, converges to local minimum of $\mathcal{L}_ {\text{CF}}$
 - No approximation gap
 - May need more iterations for same convergence tolerance
 

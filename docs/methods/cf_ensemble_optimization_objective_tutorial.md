@@ -27,14 +27,14 @@ This document develops the mathematical framework for CF-based ensemble learning
 In KD, we have:
 - **Teacher**: Large model with soft predictions $q_t$
 - **Student**: Small model learning from $q_t$ and hard labels $y_g$
-- **Loss**: $\mathcal{L}_{\text{KD}} = \rho \cdot L(\text{soft}) + (1-\rho) \cdot L(\text{hard})$
+- **Loss**: $\mathcal{L}_ {\text{KD}} = \rho \cdot L(\text{soft}) + (1-\rho) \cdot L(\text{hard})$
 
 ### CF-Ensemble Parallel
 
 In CF-ensemble, we have:
 - **"Teachers"**: Base classifier predictions forming probability matrix $R$
 - **"Student"**: Latent factor model reconstructing $R$ and predicting labels
-- **Loss**: $\mathcal{L}_{\text{CF}} = \rho \cdot L(\text{recon}) + (1-\rho) \cdot L(\text{supervised})$
+- **Loss**: $\mathcal{L}_ {\text{CF}} = \rho \cdot L(\text{recon}) + (1-\rho) \cdot L(\text{supervised})$
 
 **The skeleton is identical—only the organs differ.**
 
@@ -67,6 +67,7 @@ This is more than analogy—it's a direct mathematical mapping.
 ### The Probability Matrix
 
 Define the **probability (rating) matrix**:
+
 $$R \in [0,1]^{m \times n}$$
 
 where:
@@ -96,11 +97,13 @@ Matrix factorization **separates signal from noise** by finding low-dimensional 
 We approximate $R$ using latent vectors:
 
 **Classifier latent factors**:
+
 $$X = [x_1, x_2, \ldots, x_m] \in \mathbb{R}^{d \times m}$$
 
 where $x_u \in \mathbb{R}^d$ is the $d$-dimensional latent vector for classifier $u$.
 
 **Instance latent factors**:
+
 $$Y = [y_1, y_2, \ldots, y_n] \in \mathbb{R}^{d \times n}$$
 
 where $y_i \in \mathbb{R}^d$ is the $d$-dimensional latent vector for data point $i$.
@@ -108,6 +111,7 @@ where $y_i \in \mathbb{R}^d$ is the $d$-dimensional latent vector for data point
 ### Reconstruction via Inner Product
 
 The predicted probability is:
+
 $$\hat{r}_{ui} = x_u^\top y_i = \sum_{k=1}^d x_{uk} \cdot y_{ik}$$
 
 This dot product measures **alignment in latent space**: classifiers and data points with similar latent factors produce similar probabilities.
@@ -122,7 +126,7 @@ The simplest reconstruction objective is weighted squared error:
 
 $$L_{\text{recon}}(X, Y) = \sum_{u=1}^m \sum_{i=1}^n c_{ui} \left( r_{ui} - x_u^\top y_i \right)^2$$
 
-where $c_{ui} > 0$ are **confidence weights** (discussed below).
+where $c_{ui} \gt 0$ are **confidence weights** (discussed below).
 
 **Interpretation**: Find latent factors that faithfully reproduce the observed probabilities.
 
@@ -130,9 +134,9 @@ where $c_{ui} > 0$ are **confidence weights** (discussed below).
 
 To prevent overfitting, we add $\ell_2$ regularization:
 
-$$L_{\text{recon}}(X, Y) = \sum_{u=1}^m \sum_{i=1}^n c_{ui} \left( r_{ui} - x_u^\top y_i \right)^2 + \lambda \left( \sum_{u=1}^m \|x_u\|^2 + \sum_{i=1}^n \|y_i\|^2 \right)$$
+$$L_{\text{recon}}(X, Y) = \sum_{u=1}^m \sum_{i=1}^n c_{ui} \left( r_{ui} - x_u^\top y_i \right)^2 + \lambda \left( \sum_{u=1}^m \Vert x_u\Vert^2 + \sum_{i=1}^n \Vert y_i\Vert^2 \right)$$
 
-where $\lambda > 0$ controls regularization strength.
+where $\lambda \gt 0$ controls regularization strength.
 
 **This is analogous to the teacher-matching term in KD**: we're learning to imitate the ensemble's predictions.
 
@@ -142,7 +146,7 @@ where $\lambda > 0$ controls regularization strength.
 
 ### The Role of $C$
 
-The confidence matrix $C \in \mathbb{R}_+^{m \times n}$ encodes our trust in each probability:
+The confidence matrix $C \in \mathbb{R}_ +^{m \times n}$ encodes our trust in each probability:
 
 $$c_{ui} = \text{confidence}(r_{ui})$$
 
@@ -157,28 +161,34 @@ Several approaches work:
 
 #### 1. Calibration-Based Confidence
 Use calibration metrics like **Brier score**:
+
 $$c_{ui} = 1 - \text{Brier}_u = 1 - \frac{1}{N}\sum_{j} (r_{uj} - y_j)^2$$
 
 Better-calibrated classifiers get higher weight.
 
 #### 2. Prediction Certainty
 Use distance from 0.5 (uncertainty):
+
 $$c_{ui} = |r_{ui} - 0.5|$$
 
 Confident predictions (close to 0 or 1) get higher weight.
 
 #### 3. Ensemble Agreement
 Use variance across classifiers:
+
 $$c_{ui} = 1 - \text{Var}_u(r_{\cdot i})$$
 
 Points with high ensemble agreement get higher weight.
 
 #### 4. Label-Aware Confidence (for labeled data)
 For $i \in \mathcal{L}$ (labeled points):
-$$c_{ui} = \begin{cases}
+
+$$
+c_{ui} = \begin{cases}
 r_{ui} & \text{if } y_i = 1 \text{ (reward correct high predictions)} \\
 1 - r_{ui} & \text{if } y_i = 0 \text{ (reward correct low predictions)}
-\end{cases}$$
+\end{cases}
+$$
 
 This explicitly upweights predictions consistent with labels.
 
@@ -225,9 +235,11 @@ During training:
 For each data point $i$, we aggregate reconstructed probabilities into a final prediction.
 
 Collect the reconstructed probabilities across all classifiers:
+
 $$\hat{r}_{\cdot i} = [\hat{r}_{1i}, \hat{r}_{2i}, \ldots, \hat{r}_{mi}] \in \mathbb{R}^m$$
 
 Define an **aggregation function** $g: \mathbb{R}^m \to [0,1]$:
+
 $$\hat{p}_i = g(\hat{r}_{\cdot i})$$
 
 This is our final predicted probability for point $i$.
@@ -235,13 +247,17 @@ This is our final predicted probability for point $i$.
 ### Aggregation Choices
 
 **Simple mean**:
+
 $$g(\hat{r}_{\cdot i}) = \frac{1}{m} \sum_{u=1}^m \hat{r}_{ui}$$
 
 **Weighted mean** (learnable weights $w$):
+
 $$g(\hat{r}_{\cdot i}) = \sigma\left( w^\top \hat{r}_{\cdot i} + b \right)$$
+
 where $\sigma$ is sigmoid.
 
 **Stacker model** (meta-learner):
+
 $$g(\hat{r}_{\cdot i}) = \text{MLP}(\hat{r}_{\cdot i})$$
 
 **Note**: Simpler is often better to avoid overfitting. Start with mean or weighted mean.
@@ -253,6 +269,7 @@ For labeled points, we use binary cross-entropy:
 $$L_{\text{sup}}(X, Y, \theta) = \sum_{i \in \mathcal{L}} \text{CE}(y_i, g_\theta(\hat{r}_{\cdot i}))$$
 
 where:
+
 $$\text{CE}(y_i, \hat{p}_i) = -y_i \log \hat{p}_i - (1-y_i) \log(1-\hat{p}_i)$$
 
 and $\theta$ represents parameters of the aggregator $g_\theta$.
@@ -265,16 +282,20 @@ and $\theta$ represents parameters of the aggregator $g_\theta$.
 
 ### The KD-Style Combined Loss
 
-$$\boxed{
+$$
+\boxed{
 \mathcal{L}_{\text{CF-Ensemble}}(X, Y, \theta) = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta)
-}$$
+}
+$$
 
 Expanding the components:
 
-$$\begin{align}
-\mathcal{L}_{\text{CF-Ensemble}} &= \rho \left[ \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2) \right] \\
-&\quad + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, g_\theta(\hat{r}_{\cdot i}))
-\end{align}$$
+$$
+\begin{align}
+\mathcal{L}_ {\text{CF-Ensemble}} &= \rho \left[ \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2) \right] \\
+&\quad + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, g_\theta(\hat{r}_ {\cdot i}))
+\end{align}
+$$
 
 where:
 - **First term**: Matrix reconstruction (all points, weighted by confidence)
@@ -325,10 +346,13 @@ This is exactly why KD combines soft and hard targets!
 ### The Role of Confidence Weights
 
 For labeled data ($i \in \mathcal{L}$), using label-aware confidence:
-$$c_{ui} = \begin{cases}
+
+$$
+c_{ui} = \begin{cases}
 r_{ui} & \text{if } y_i = 1 \\
 1 - r_{ui} & \text{if } y_i = 0
-\end{cases}$$
+\end{cases}
+$$
 
 means reconstruction preferentially matches **correct predictions**:
 - True Positives (high $r_{ui}$ for $y_i=1$) → high weight
@@ -345,6 +369,7 @@ This is your "TP/TN amplification, FP/FN suppression" idea, formalized.
 ### The Challenge: Non-Quadratic Combined Loss
 
 Our combined objective is:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot \underbrace{\sum c_{ui}(r_{ui} - x_u^\top y_i)^2}_{\text{quadratic}} + (1-\rho) \cdot \underbrace{\sum CE(y_i, g_\theta(X^\top y_i))}_{\text{NON-quadratic}}$$
 
 **The problem:**
@@ -359,15 +384,19 @@ $$\mathcal{L}_{\text{CF}} = \rho \cdot \underbrace{\sum c_{ui}(r_{ui} - x_u^\top
 
 **Strategy:** Approximate the combined loss by encoding supervision via confidence weights.
 
-Instead of optimizing $\mathcal{L}_{\text{CF}}$ directly, optimize:
-$$\mathcal{L}_{\text{approx}} = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)$$
+Instead of optimizing $\mathcal{L}_ {\text{CF}}$ directly, optimize:
 
-where $\tilde{c}_{ui}$ is **label-aware**:
-$$\tilde{c}_{ui} = \begin{cases}
+$$\mathcal{L}_{\text{approx}} = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2)$$
+
+where $\tilde{c}_ {ui}$ is **label-aware**:
+
+$$
+\tilde{c}_ {ui} = \begin{cases}
 c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot r_{ui}) & \text{if } y_i = 1 \\
 c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot (1 - r_{ui})) & \text{if } y_i = 0 \\
 c_{ui}^{\text{base}} & \text{if unlabeled}
-\end{cases}$$
+\end{cases}
+$$
 
 **How this incorporates supervision:**
 - Predictions matching labels get higher confidence → ALS preserves them
@@ -377,12 +406,15 @@ c_{ui}^{\text{base}} & \text{if unlabeled}
 **ALS update equations (same form, but use $\tilde{C}$):**
 
 **Fix $Y$, update $X$**:
+
 $$x_u = \left( Y \tilde{C}_u Y^\top + \lambda I \right)^{-1} Y \tilde{C}_u r_u$$
 
 **Fix $X$, update $Y$**:
+
 $$y_i = \left( X \tilde{C}_i X^\top + \lambda I \right)^{-1} X \tilde{C}_i r_i$$
 
 **Aggregator update:**
+
 $$\theta \leftarrow \theta - \eta \nabla_\theta L_{\text{sup}}(X, Y, \theta)$$
 
 **Algorithm:**
@@ -414,21 +446,27 @@ $$\theta \leftarrow \theta - \eta \nabla_\theta L_{\text{sup}}(X, Y, \theta)$$
 
 ### Approach 2: Joint Gradient Descent via PyTorch (Exact)
 
-**Strategy:** Directly optimize $\mathcal{L}_{\text{CF}}$ using automatic differentiation.
+**Strategy:** Directly optimize $\mathcal{L}_ {\text{CF}}$ using automatic differentiation.
 
 **Unified gradients:**
-$$\begin{align}
-\nabla_X \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_X L_{\text{recon}} + (1-\rho) \cdot \nabla_X L_{\text{sup}} \\
-\nabla_Y \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_Y L_{\text{recon}} + (1-\rho) \cdot \nabla_Y L_{\text{sup}} \\
-\nabla_\theta \mathcal{L}_{\text{CF}} &= (1-\rho) \cdot \nabla_\theta L_{\text{sup}}
-\end{align}$$
+
+$$
+\begin{align}
+\nabla_X \mathcal{L}_ {\text{CF}} &= \rho \cdot \nabla_X L_{\text{recon}} + (1-\rho) \cdot \nabla_X L_{\text{sup}} \\
+\nabla_Y \mathcal{L}_ {\text{CF}} &= \rho \cdot \nabla_Y L_{\text{recon}} + (1-\rho) \cdot \nabla_Y L_{\text{sup}} \\
+\nabla_\theta \mathcal{L}_ {\text{CF}} &= (1-\rho) \cdot \nabla_\theta L_{\text{sup}}
+\end{align}
+$$
 
 **Update equations:**
-$$\begin{align}
-X &\leftarrow X - \eta_X \cdot \nabla_X \mathcal{L}_{\text{CF}} \\
-Y &\leftarrow Y - \eta_Y \cdot \nabla_Y \mathcal{L}_{\text{CF}} \\
-\theta &\leftarrow \theta - \eta_\theta \cdot \nabla_\theta \mathcal{L}_{\text{CF}}
-\end{align}$$
+
+$$
+\begin{align}
+X &\leftarrow X - \eta_X \cdot \nabla_X \mathcal{L}_ {\text{CF}} \\
+Y &\leftarrow Y - \eta_Y \cdot \nabla_Y \mathcal{L}_ {\text{CF}} \\
+\theta &\leftarrow \theta - \eta_\theta \cdot \nabla_\theta \mathcal{L}_ {\text{CF}}
+\end{align}
+$$
 
 **Algorithm:**
 ```
@@ -448,7 +486,7 @@ Y &\leftarrow Y - \eta_Y \cdot \nabla_Y \mathcal{L}_{\text{CF}} \\
 - GPU acceleration: 10-100x speedup
 
 **Advantages:**
-- ✅ Exact (true gradient of $\mathcal{L}_{\text{CF}}$)
+- ✅ Exact (true gradient of $\mathcal{L}_ {\text{CF}}$)
 - ✅ Unified (all parameters updated consistently)
 - ✅ Flexible (easy to extend)
 - ✅ GPU acceleration
@@ -488,7 +526,7 @@ Y &\leftarrow Y - \eta_Y \cdot \nabla_Y \mathcal{L}_{\text{CF}} \\
 At test time:
 - **Classifier factors $X$ are fixed** (classifiers don't change)
 - **Test point factors $Y_{\mathcal{U}}$ are already learned** (from transductive training)
-- Simply aggregate: $\hat{p}_i = g_\theta(\hat{r}_{\cdot i})$ where $\hat{r}_{ui} = x_u^\top y_i$
+- Simply aggregate: $\hat{p}_ i = g_\theta(\hat{r}_ {\cdot i})$ where $\hat{r}_ {ui} = x_u^\top y_i$
 
 ### Truly New Points (Inductive Setting)
 
@@ -496,9 +534,11 @@ For a completely new point $i_{\text{new}}$ not seen during training:
 
 1. Obtain base model predictions: $r_{1,i_{\text{new}}}, \ldots, r_{m,i_{\text{new}}}$
 2. Solve for its latent factor (fix $X$):
+
    $$y_{i_{\text{new}}} = (X C_{i_{\text{new}}} X^\top + \lambda I)^{-1} X C_{i_{\text{new}}} r_{i_{\text{new}}}$$
-3. Reconstruct: $\hat{r}_{u,i_{\text{new}}} = x_u^\top y_{i_{\text{new}}}$
-4. Aggregate: $\hat{p}_{i_{\text{new}}} = g_\theta(\hat{r}_{\cdot, i_{\text{new}}})$
+
+3. Reconstruct: $\hat{r}_ {u,i_{\text{new}}} = x_u^\top y_{i_{\text{new}}}$
+4. Aggregate: $\hat{p}_ {i_{\text{new}}} = g_\theta(\hat{r}_ {\cdot, i_{\text{new}}})$
 
 This is analogous to "cold-start" solutions in recommender systems.
 
@@ -508,14 +548,14 @@ This is analogous to "cold-start" solutions in recommender systems.
 
 ### vs. Simple Averaging
 
-**Simple averaging**: $\hat{p}_i = \frac{1}{m}\sum_u r_{ui}$
+**Simple averaging**: $\hat{p}_ i = \frac{1}{m}\sum_u r_{ui}$
 - Treats all classifiers equally
 - No adaptation to data regions
 - Our method: learns **context-dependent weights** via latent factors
 
 ### vs. Weighted Averaging
 
-**Weighted averaging**: $\hat{p}_i = \sum_u w_u r_{ui}$
+**Weighted averaging**: $\hat{p}_ i = \sum_u w_u r_{ui}$
 - Global weights for each classifier
 - No adaptation to specific points
 - Our method: weights are **instance-specific** via $x_u^\top y_i$
@@ -578,6 +618,7 @@ This often produces **sharper** distinctions (less averaging).
 ### Incorporating Additional Features
 
 Extend latent factors with side information:
+
 $$\hat{r}_{ui} = x_u^\top y_i + a_u^\top f_i + b_i$$
 
 where $f_i$ are features of point $i$ (e.g., input features, metadata).
@@ -585,6 +626,7 @@ where $f_i$ are features of point $i$ (e.g., input features, metadata).
 ### Hierarchical Structures
 
 Group similar classifiers and learn group-level factors:
+
 $$x_u = \beta_u x_{\text{group}(u)} + \epsilon_u$$
 
 Encourages parameter sharing and handles large ensembles better.
@@ -592,6 +634,7 @@ Encourages parameter sharing and handles large ensembles better.
 ### Attention Mechanisms
 
 Replace dot product with learned attention:
+
 $$\hat{r}_{ui} = \text{Attention}(x_u, y_i) = \text{softmax}(x_u^\top W y_i)$$
 
 Allows more flexible interactions.
@@ -622,8 +665,8 @@ Allows more flexible interactions.
 
 Use cross-validation on the labeled set $\mathcal{L}$:
 - Split $\mathcal{L}$ into train/validation
-- Train on $\mathcal{L}_{\text{train}} \cup \mathcal{U}$ (transductive)
-- Validate on $\mathcal{L}_{\text{val}}$
+- Train on $\mathcal{L}_ {\text{train}} \cup \mathcal{U}$ (transductive)
+- Validate on $\mathcal{L}_ {\text{val}}$
 - Select hyperparameters maximizing validation performance
 
 ### Computational Considerations
@@ -644,6 +687,7 @@ Use cross-validation on the labeled set $\mathcal{L}$:
 ### Check Reconstruction Quality
 
 Monitor reconstruction error separately on train/test:
+
 $$\text{RMSE}_{\mathcal{L}} = \sqrt{\frac{1}{m|\mathcal{L}|}\sum_{u,i \in \mathcal{L}} (r_{ui} - \hat{r}_{ui})^2}$$
 
 $$\text{RMSE}_{\mathcal{U}} = \sqrt{\frac{1}{m|\mathcal{U}|}\sum_{u,i \in \mathcal{U}} (r_{ui} - \hat{r}_{ui})^2}$$
@@ -653,8 +697,8 @@ Large gap suggests overfitting to labeled structure.
 ### Visualize Latent Spaces
 
 - **t-SNE/UMAP of $Y$**: Do labeled points cluster by class?
-- **Classifier similarities**: $\text{sim}(x_u, x_v) = \frac{x_u^\top x_v}{\|x_u\|\|x_v\|}$
-- **Point difficulties**: $\|y_i\|$ (higher norm → more unusual)
+- **Classifier similarities**: $\text{sim}(x_u, x_v) = \frac{x_u^\top x_v}{\Vert x_u\Vert\Vert x_v\Vert}$
+- **Point difficulties**: $\Vert y_i\Vert$ (higher norm → more unusual)
 
 ### Analyze Learned Weights
 
@@ -702,20 +746,25 @@ Hybrid approach:
 
 **Given**:
 - Probability matrix $R \in [0,1]^{m \times n}$
-- Confidence matrix $C \in \mathbb{R}_+^{m \times n}$
-- Labels $\{y_i\}_{i \in \mathcal{L}}$ for labeled set $\mathcal{L} \subset \{1,\ldots,n\}$
+- Confidence matrix $C \in \mathbb{R}_ +^{m \times n}$
+- Labels $\lbrace y_i\rbrace_{i \in \mathcal{L}}$ for labeled set $\mathcal{L} \subset \lbrace1,\ldots,n\rbrace$
 
 **Optimize**:
+
 $$\min_{X \in \mathbb{R}^{d \times m}, Y \in \mathbb{R}^{d \times n}, \theta} \mathcal{L}_{\text{CF-Ensemble}}(X, Y, \theta)$$
 
 where:
-$$\begin{align}
-\mathcal{L}_{\text{CF-Ensemble}} &= \rho \left[ \sum_{u=1}^m \sum_{i=1}^n c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2) \right] \\
-&\quad + (1-\rho) \sum_{i \in \mathcal{L}} \left[ -y_i \log g_\theta(\hat{r}_{\cdot i}) - (1-y_i) \log(1-g_\theta(\hat{r}_{\cdot i})) \right]
-\end{align}$$
+
+$$
+\begin{align}
+\mathcal{L}_ {\text{CF-Ensemble}} &= \rho \left[ \sum_{u=1}^m \sum_{i=1}^n c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2) \right] \\
+&\quad + (1-\rho) \sum_{i \in \mathcal{L}} \left[ -y_i \log g_\theta(\hat{r}_ {\cdot i}) - (1-y_i) \log(1-g_\theta(\hat{r}_ {\cdot i})) \right]
+\end{align}
+$$
 
 **Prediction**:
 For point $i$ (train or test):
+
 $$\hat{p}_i = g_\theta(\hat{r}_{\cdot i}) \quad \text{where} \quad \hat{r}_{ui} = x_u^\top y_i$$
 
 ---

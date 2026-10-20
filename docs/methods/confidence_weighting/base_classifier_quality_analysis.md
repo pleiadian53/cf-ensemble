@@ -230,7 +230,7 @@ Based on these experiments, confidence weighting provides meaningful gains when:
 
 **2. Ceiling Effect (Trivial but Important)**
 
-**Theorem**: If all classifiers have accuracy $\alpha > 1 - \delta$, maximum possible improvement is $\delta$.
+**Theorem**: If all classifiers have accuracy $\alpha \gt 1 - \delta$, maximum possible improvement is $\delta$.
 
 **Proof**: Ensemble cannot exceed 100% accuracy. If baseline is already $1 - \delta$, improvement $\leq \delta$.
 
@@ -305,18 +305,21 @@ Where:
 
 #### Breakdown:
 
-**When Quality is Low** ($< 60\%$):
+**When Quality is Low** ($\lt 60\unicode{37}$):
+
 $$\Delta_{\text{ROC-AUC}} \approx 0$$
 
 Confidence scores are uncorrelated with correctness. No weighting strategy can extract signal from noise.
 
-**When Quality is Moderate** ($60-80\%$):
+**When Quality is Moderate** ($60-80\unicode{37}$):
+
 $$\Delta_{\text{ROC-AUC}} = \alpha \cdot \text{Diversity} + \beta \cdot (1 - \text{Miscalibration})$$
 
 Both diversity and calibration matter. Learned reliability can identify which predictions to trust.
 
-**When Quality is High** ($> 85\%$):
-$$\Delta_{\text{ROC-AUC}} \approx \epsilon, \quad \epsilon \ll 1\%$$
+**When Quality is High** ($\gt 85\unicode{37}$):
+
+$$\Delta_{\text{ROC-AUC}} \approx \epsilon, \quad \epsilon \ll 1\unicode{37}$$
 
 Classifiers already reliable, little room for improvement.
 

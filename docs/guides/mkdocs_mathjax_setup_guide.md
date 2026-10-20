@@ -18,8 +18,9 @@
 7. [Local Testing](#local-testing)
 8. [GitHub Deployment](#github-deployment)
 9. [Writing Documentation](#writing-documentation)
-10. [Troubleshooting](#troubleshooting)
-11. [Examples](#examples)
+10. [Math That Renders on GitHub Too](#math-that-renders-on-github-too)
+11. [Troubleshooting](#troubleshooting)
+12. [Examples](#examples)
 
 ---
 
@@ -51,6 +52,8 @@ The ALS update is: x_u = (Y C_u Y^T + \lambda I)^{-1} Y C_u r_u
 ```
 
 **Result:** Shows as raw text, completely unreadable for complex equations ❌
+
+> **Update:** GitHub now renders `$...$` / `$$...$$` math, but Markdown runs first and mangles some TeX. See [Math That Renders on GitHub Too](#math-that-renders-on-github-too) for writing math that renders in both places.
 
 ### The Solution
 
@@ -757,7 +760,7 @@ $$
 **Renders as:**
 
 $$
-\mathcal{L}(X, Y) = \rho \|R - XY^T\|_F^2 + (1-\rho) \sum_{(u,i) \in L} (r_{ui} - y_i)^2
+\mathcal{L}(X, Y) = \rho \Vert R - XY^T\Vert_F^2 + (1-\rho) \sum_{(u,i) \in L} (r_{ui} - y_i)^2
 $$
 
 ---
@@ -966,6 +969,37 @@ flowchart LR
     ```bash
     echo "Hello, World!"
     ```
+```
+
+---
+
+## Math That Renders on GitHub Too
+
+GitHub renders `$...$` and `$$...$$` with MathJax, so the same `.md` files can read well both on github.com and on the MkDocs site. The catch: GitHub runs Markdown **before** MathJax (arithmatex extracts math first, which is why MkDocs never shows these problems). Markdown then eats parts of the TeX.
+
+| Symptom on GitHub | Cause | GitHub-safe form |
+|---|---|---|
+| `_..._` turns italic, `\\` rows collapse | `$$` block shares a paragraph with text | Blank line before and after; multi-line blocks get `$$` on their own lines |
+| `\{x\}` shows as `{x}`; norm bars shrink to single bars | Backslash + punctuation is a Markdown escape (in all math) | `\lbrace x \rbrace`, `\Vert x \Vert` |
+| `a\,b`, `a\;b`, `a\!b` lose spacing | Same escape rule | `\thinspace`, `\mskip5mu`, `\negthinspace` |
+| `50\%` truncates the formula | `\%` → `%` starts a TeX comment | `50\unicode{37}` |
+| Mid-line `a \\ b` loses the row break | Same escape rule | End the line after `\\` |
+| Inline math shows raw with italic gaps | `_` after punctuation (`}_{ui}`) opens emphasis, which pairs across `$..$` spans | `}_ {ui}` (TeX ignores the space); `*` → `\ast` |
+| `&` in `align`/`cases` shows as `&amp;` | Same emphasis pairing inside the block | Same `_ ` spacing in that block |
+| `$a<b$` shows `&lt;` | `<` / `>` double-escaped in inline math | `\lt`, `\gt` |
+| `($f(x)$)` shows raw | Span ending in `)` right before `)` | `($f(x){}$)` |
+| Inline `\begin{bmatrix}` shows raw | No environments in inline math | Display block, or `\left[\matrix{a\cr b}\right]` |
+
+Every replacement is the same TeX, so MkDocs renders it identically. (`\unicode{37}` is MathJax-only; VS Code's KaTeX preview won't render it.)
+
+You don't need to memorize the table. Two scripts apply and verify it:
+
+```bash
+# Rewrite math in place (idempotent; leaves code blocks alone); --check only reports
+python scripts/docs/fix_math_for_github.py README.md docs/
+
+# Render with GitHub's API and with arithmatex; compare the TeX each hands to MathJax
+python scripts/docs/check_math_rendering.py -v README.md docs/
 ```
 
 ---
@@ -1245,7 +1279,7 @@ nav:
 
 **docs/theory/derivations.md:**
 
-```markdown
+````markdown
 # Mathematical Derivations
 
 ## Loss Function Derivation
@@ -1302,7 +1336,7 @@ def compute_X_closed_form(R, Y):
     X = R @ Y.T @ np.linalg.inv(YtY)
     return X.T
 ```
-```
+````
 
 ---
 
@@ -1470,7 +1504,9 @@ docs/
 
 3. **Inline for simple, display for complex:**
    - Inline: $f(x) = x^2$
-   - Display: $$\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}$$
+   - Display:
+
+     $$\int_0^\infty e^{-x^2} dx = \frac{\sqrt{\pi}}{2}$$
 
 4. **Add intuition after equations:**
    
@@ -1650,7 +1686,7 @@ mkdocs --version          # Check version
 | Greek | `$\alpha, \beta, \gamma$` | $\alpha, \beta, \gamma$ |
 | Sum | `$\sum_{i=1}^n x_i$` | $\sum_{i=1}^n x_i$ |
 | Integral | `$\int_0^\infty f(x)dx$` | $\int_0^\infty f(x)dx$ |
-| Matrix | `$\begin{bmatrix}a\\b\end{bmatrix}$` | $\begin{bmatrix}a\\b\end{bmatrix}$ |
+| Matrix | `$\begin{bmatrix}a\\b\end{bmatrix}$` | $\left[\matrix{a\cr b}\right]$ |
 
 ---
 

@@ -168,9 +168,10 @@ trainer = CFEnsemblePyTorchTrainer(
 
 ALS uses **closed-form solutions** that directly compute the optimal X, Y:
 
-$$X^* = \arg\min_X \|C \odot (R - X^TY)\|_F^2 + \lambda\|X\|_F^2$$
+$$X^* = \arg\min_X \Vert C \odot (R - X^TY)\Vert_F^2 + \lambda\Vert X\Vert_F^2$$
 
 This is solved via:
+
 $$X = (YC^TY^T + \lambda I)^{-1}YC^TR^T$$
 
 **There are no gradients here!** It's a direct matrix equation. We can't "weight" the solution because it's already optimal for the given C matrix.
@@ -183,9 +184,10 @@ PyTorch uses **gradient descent** for all parameters:
 
 $$\theta_{\text{new}} = \theta_{\text{old}} - \eta \nabla_\theta L(\theta)$$
 
-where $\theta = \{X, Y, w, b\}$ are all the parameters.
+where $\theta = \lbrace X, Y, w, b\rbrace$ are all the parameters.
 
 The loss function:
+
 $$L = \rho \cdot L_{\text{recon}} + (1-\rho) \cdot L_{\text{sup}}^{\text{weighted}}$$
 
 When we apply class weighting to $L_{\text{sup}}$, the gradients flow back to **all parameters** via backpropagation:
