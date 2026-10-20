@@ -20,6 +20,7 @@
 ## Introduction
 
 **Goal:** Optimize the combined KD-inspired objective:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta)$$
 
 This balances:
@@ -40,19 +41,21 @@ This document derives the mathematical foundation for this approximation.
 
 Following the knowledge distillation analogy:
 
-$$\begin{align}
-\mathcal{L}_{\text{CF}}(X, Y, \theta) &= \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta) \\
-&= \rho \cdot \left[\sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)\right] \\
+$$
+\begin{align}
+\mathcal{L}_ {\text{CF}}(X, Y, \theta) &= \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta) \\
+&= \rho \cdot \left[\sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2)\right] \\
 &\quad + (1-\rho) \cdot \sum_{i \in \mathcal{L}} CE(y_i, g_\theta(X^\top y_i))
-\end{align}$$
+\end{align}
+$$
 
 where:
 - $R \in [0,1]^{m \times n}$: Probability matrix from base classifiers
 - $X \in \mathbb{R}^{d \times m}$: Classifier latent factors
 - $Y \in \mathbb{R}^{d \times n}$: Instance latent factors
-- $C \in \mathbb{R}_+^{m \times n}$: Confidence weights
-- $\mathcal{L} \subset \{1,\ldots,n\}$: Labeled instances
-- $g_\theta$: Aggregation function (e.g., $\sigma(w^\top(\cdot) + b)$)
+- $C \in \mathbb{R}_ +^{m \times n}$: Confidence weights
+- $\mathcal{L} \subset \lbrace1,\ldots,n\rbrace$: Labeled instances
+- $g_\theta$: Aggregation function (e.g., $\sigma(w^\top(\cdot) + b){}$)
 - $CE$: Binary cross-entropy
 
 ### What Each Term Does
@@ -63,7 +66,9 @@ where:
 - Encourages $X^\top Y \approx R$ (low-rank approximation)
 
 **Supervised term** ($L_{\text{sup}}$):
+
 $$CE(y_i, g_\theta(X^\top y_i)) = -y_i \log \sigma(w^\top(X^\top y_i) + b) - (1-y_i) \log(1-\sigma(...))$$
+
 - Non-quadratic (sigmoid + log)
 - No closed-form solution
 - Encourages predictions to match labels
@@ -76,19 +81,22 @@ $$CE(y_i, g_\theta(X^\top y_i)) = -y_i \log \sigma(w^\top(X^\top y_i) + b) - (1-
 
 **Standard ALS** works when the objective is **quadratic in each variable block**:
 
-$$\min_{X} \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \|X\|_F^2$$
+$$\min_{X} \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \Vert X\Vert_F^2$$
 
 This gives closed-form solution:
+
 $$x_u = (YC_uY^\top + \lambda I)^{-1} YC_u r_u$$
 
 ### The Supervised Term is Non-Quadratic
 
 Taking gradient of $L_{\text{sup}}$ w.r.t. $X$:
 
-$$\begin{align}
+$$
+\begin{align}
 \nabla_X L_{\text{sup}} &= \sum_{i \in \mathcal{L}} \nabla_X CE(y_i, g_\theta(X^\top y_i)) \\
-&= \sum_{i \in \mathcal{L}} \underbrace{(\sigma(w^\top(X^\top y_i) + b) - y_i)}_{\text{residual}} \cdot \underbrace{w}_{\text{weights}} \cdot \underbrace{y_i^\top}_{\text{instance factor}}
-\end{align}$$
+&= \sum_{i \in \mathcal{L}} \underbrace{(\sigma(w^\top(X^\top y_i) + b) - y_i)}_ {\text{residual}} \cdot \underbrace{w}_ {\text{weights}} \cdot \underbrace{y_i^\top}_ {\text{instance factor}}
+\end{align}
+$$
 
 **The problem:**
 - Contains $\sigma(\cdot)$ (non-linear)
@@ -104,20 +112,24 @@ $$\begin{align}
 ### Key Insight
 
 Instead of directly minimizing:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}} + (1-\rho) \cdot L_{\text{sup}}$$
 
 **Approximate** by minimizing:
-$$\mathcal{L}_{\text{approx}}(X, Y) = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2)$$
 
-where $\tilde{c}_{ui}$ is **label-aware**: encodes supervision signal through confidence modulation.
+$$\mathcal{L}_{\text{approx}}(X, Y) = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2)$$
+
+where $\tilde{c}_ {ui}$ is **label-aware**: encodes supervision signal through confidence modulation.
 
 ### Label-Aware Confidence Definition
 
-$$\tilde{c}_{ui} = \begin{cases}
+$$
+\tilde{c}_ {ui} = \begin{cases}
 c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot r_{ui}) & \text{if } i \in \mathcal{L} \text{ and } y_i = 1 \\
 c_{ui}^{\text{base}} \cdot (1 + \alpha \cdot (1 - r_{ui})) & \text{if } i \in \mathcal{L} \text{ and } y_i = 0 \\
 c_{ui}^{\text{base}} & \text{if } i \notin \mathcal{L} \text{ (unlabeled)}
-\end{cases}$$
+\end{cases}
+$$
 
 where:
 - $c_{ui}^{\text{base}}$: Base confidence (typically $|r_{ui} - 0.5|$ for certainty)
@@ -126,12 +138,12 @@ where:
 ### How This Incorporates Supervision
 
 **For positive instances** ($y_i = 1$):
-- High $r_{ui}$ (correct prediction) → High $\tilde{c}_{ui}$ → ALS prioritizes preserving this
-- Low $r_{ui}$ (incorrect prediction) → Lower $\tilde{c}_{ui}$ → ALS deprioritizes this
+- High $r_{ui}$ (correct prediction) → High $\tilde{c}_ {ui}$ → ALS prioritizes preserving this
+- Low $r_{ui}$ (incorrect prediction) → Lower $\tilde{c}_ {ui}$ → ALS deprioritizes this
 
 **For negative instances** ($y_i = 0$):
-- Low $r_{ui}$ (correct prediction) → High $\tilde{c}_{ui}$ → ALS prioritizes preserving this
-- High $r_{ui}$ (incorrect prediction) → Lower $\tilde{c}_{ui}$ → ALS deprioritizes this
+- Low $r_{ui}$ (correct prediction) → High $\tilde{c}_ {ui}$ → ALS prioritizes preserving this
+- High $r_{ui}$ (incorrect prediction) → Lower $\tilde{c}_ {ui}$ → ALS deprioritizes this
 
 **Result:** ALS learns to reconstruct **correct predictions** well while downweighting **errors**.
 
@@ -139,19 +151,25 @@ where:
 
 Expand the approximate objective:
 
-$$\begin{align}
-\mathcal{L}_{\text{approx}} &= \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|_F^2 + \|Y\|_F^2) \\
+$$
+\begin{align}
+\mathcal{L}_ {\text{approx}} &= \sum_{u,i} \tilde{c}_ {ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert_F^2 + \Vert Y\Vert_F^2) \\
 &= \sum_{u,i} c_{ui}^{\text{base}}(1 + \alpha \cdot s_{ui})(r_{ui} - x_u^\top y_i)^2 + \text{reg}
-\end{align}$$
+\end{align}
+$$
 
 where $s_{ui}$ is the **supervision signal**:
-$$s_{ui} = \begin{cases}
+
+$$
+s_{ui} = \begin{cases}
 r_{ui} & \text{if } y_i = 1 \\
 1 - r_{ui} & \text{if } y_i = 0 \\
 0 & \text{if unlabeled}
-\end{cases}$$
+\end{cases}
+$$
 
 This is equivalent to:
+
 $$\mathcal{L}_{\text{approx}} \approx \underbrace{\sum c_{ui}^{\text{base}}(r_{ui} - x_u^\top y_i)^2}_{\text{reconstruction}} + \alpha \cdot \underbrace{\sum c_{ui}^{\text{base}} s_{ui}(r_{ui} - x_u^\top y_i)^2}_{\text{supervision-weighted reconstruction}}$$
 
 The second term **implicitly encourages** $X^\top y_i$ to match predictions that agree with labels!
@@ -163,49 +181,61 @@ The second term **implicitly encourages** $X^\top y_i$ to match predictions that
 ### Classifier Factor Update
 
 **Objective (fix $Y$, optimize $X$):**
-$$\min_X \sum_{u=1}^{m} \sum_{i=1}^{n} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \|X\|_F^2$$
+
+$$\min_X \sum_{u=1}^{m} \sum_{i=1}^{n} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \Vert X\Vert_F^2$$
 
 This decomposes into $m$ independent problems (one per classifier):
-$$\min_{x_u} \sum_{i=1}^{n} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \|x_u\|^2$$
+
+$$\min_{x_u} \sum_{i=1}^{n} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \Vert x_u\Vert^2$$
 
 **Gradient:**
+
 $$\nabla_{x_u} = -2\sum_{i=1}^{n} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)y_i + 2\lambda x_u$$
 
 **Set to zero:**
+
 $$\sum_{i=1}^{n} \tilde{c}_{ui} y_i y_i^\top x_u + \lambda x_u = \sum_{i=1}^{n} \tilde{c}_{ui} r_{ui} y_i$$
 
 **Rearrange:**
+
 $$(Y\tilde{C}_u Y^\top + \lambda I)x_u = Y\tilde{C}_u r_u$$
 
 where:
-- $\tilde{C}_u = \text{diag}(\tilde{c}_{u1}, \ldots, \tilde{c}_{un})$: Label-aware confidence for classifier $u$
+- $\tilde{C}_ u = \text{diag}(\tilde{c}_ {u1}, \ldots, \tilde{c}_ {un})$: Label-aware confidence for classifier $u$
 - $r_u = [r_{u1}, \ldots, r_{un}]^\top$: Predictions from classifier $u$
 
 **Closed-form solution:**
+
 $$\boxed{x_u = (Y\tilde{C}_u Y^\top + \lambda I)^{-1} Y\tilde{C}_u r_u}$$
 
 ### Instance Factor Update
 
 **Objective (fix $X$, optimize $Y$):**
-$$\min_Y \sum_{u=1}^{m} \sum_{i=1}^{n} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \|Y\|_F^2$$
+
+$$\min_Y \sum_{u=1}^{m} \sum_{i=1}^{n} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \Vert Y\Vert_F^2$$
 
 This decomposes into $n$ independent problems (one per instance):
-$$\min_{y_i} \sum_{u=1}^{m} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \|y_i\|^2$$
+
+$$\min_{y_i} \sum_{u=1}^{m} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda \Vert y_i\Vert^2$$
 
 **Gradient:**
+
 $$\nabla_{y_i} = -2\sum_{u=1}^{m} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)x_u + 2\lambda y_i$$
 
 **Set to zero:**
+
 $$\sum_{u=1}^{m} \tilde{c}_{ui} x_u x_u^\top y_i + \lambda y_i = \sum_{u=1}^{m} \tilde{c}_{ui} r_{ui} x_u$$
 
 **Rearrange:**
+
 $$(X\tilde{C}_i X^\top + \lambda I)y_i = X\tilde{C}_i r_i$$
 
 where:
-- $\tilde{C}_i = \text{diag}(\tilde{c}_{1i}, \ldots, \tilde{c}_{mi})$: Label-aware confidence for instance $i$
+- $\tilde{C}_ i = \text{diag}(\tilde{c}_ {1i}, \ldots, \tilde{c}_ {mi})$: Label-aware confidence for instance $i$
 - $r_i = [r_{1i}, \ldots, r_{mi}]^\top$: Predictions for instance $i$
 
 **Closed-form solution:**
+
 $$\boxed{y_i = (X\tilde{C}_i X^\top + \lambda I)^{-1} X\tilde{C}_i r_i}$$
 
 ### Key Observation
@@ -222,11 +252,11 @@ This is why the approximation is elegant: we don't modify the ALS algorithm stru
 
 **Input:**
 - $R \in [0,1]^{m \times n}$: Probability matrix
-- $y \in \{0,1\}^n$: Labels (with NaN for unlabeled)
+- $y \in \lbrace0,1\rbrace^n$: Labels (with NaN for unlabeled)
 - $\mathcal{L}$: Set of labeled indices
 - $\rho \in [0,1]$: Reconstruction vs. supervision trade-off
 - $\alpha \geq 0$: Label-aware supervision strength
-- $\lambda > 0$: Regularization strength
+- $\lambda \gt 0$: Regularization strength
 - $d$: Latent dimensionality
 
 **Output:**
@@ -297,26 +327,30 @@ for epoch in 1 to max_epochs:
 ### Convergence Guarantee
 
 **Theorem:** Each ALS update (fixing one set of factors) decreases the approximate objective:
+
 $$\mathcal{L}_{\text{approx}}(X^{t+1}, Y^t) \leq \mathcal{L}_{\text{approx}}(X^t, Y^t)$$
+
 $$\mathcal{L}_{\text{approx}}(X^{t+1}, Y^{t+1}) \leq \mathcal{L}_{\text{approx}}(X^{t+1}, Y^t)$$
 
 **Proof:** Each update minimizes a convex quadratic objective, guaranteeing decrease.
 
-**Corollary:** ALS converges to a local minimum of $\mathcal{L}_{\text{approx}}$.
+**Corollary:** ALS converges to a local minimum of $\mathcal{L}_ {\text{approx}}$.
 
 ### Approximation Quality
 
-**Question:** How well does $\mathcal{L}_{\text{approx}}$ approximate $\mathcal{L}_{\text{CF}}$?
+**Question:** How well does $\mathcal{L}_ {\text{approx}}$ approximate $\mathcal{L}_ {\text{CF}}$?
 
 **Intuition:** Label-aware confidence creates a **first-order approximation** of the supervision gradient.
 
 **Formal analysis:**
 
 Consider the supervision gradient:
+
 $$\nabla_{X,Y} L_{\text{sup}} \propto \sum_{i \in \mathcal{L}} (g_\theta(X^\top y_i) - y_i) \cdot \nabla_{X,Y} g_\theta$$
 
 Label-aware confidence implicitly adds a term proportional to:
-$$\alpha \sum_{i \in \mathcal{L}} s_{ui} \cdot \nabla_{X,Y} \|R - X^\top Y\|^2$$
+
+$$\alpha \sum_{i \in \mathcal{L}} s_{ui} \cdot \nabla_{X,Y} \Vert R - X^\top Y\Vert^2$$
 
 where $s_{ui}$ correlates with $(g_\theta - y_i)$ when $g_\theta$ is well-calibrated.
 
@@ -509,7 +543,7 @@ trainer = CFEnsembleTrainer(
    - Incorporates supervision indirectly
 
 3. **Mathematical foundation is sound**:
-   - Each ALS step provably decreases $\mathcal{L}_{\text{approx}}$
+   - Each ALS step provably decreases $\mathcal{L}_ {\text{approx}}$
    - Approximation quality is first-order in supervision gradient
    - Empirically works well for calibrated base models
 

@@ -81,6 +81,7 @@ $$\nabla_w L_{\text{sup}} = \frac{1}{n} \sum_{i=1}^n \underbrace{(y_{\text{pred}
 where the **residual** = `y_pred - y_true` measures the prediction error.
 
 **Gradient descent update rule:**
+
 $$w_{\text{new}} = w_{\text{old}} - \text{lr} \times \nabla L$$
 
 **Key insight:**
@@ -264,9 +265,11 @@ Both classes now contribute equally to the gradient direction, preventing the ma
 ### Standard (Unweighted) Supervised Loss
 
 Binary cross-entropy:
+
 $$L_{\text{sup}} = -\frac{1}{n}\sum_{i=1}^n \left[y_i \log(\hat{y}_i) + (1-y_i)\log(1-\hat{y}_i)\right]$$
 
 Gradient w.r.t. aggregator weights $w$:
+
 $$\nabla_w L_{\text{sup}} = \frac{1}{n}\sum_{i=1}^n (\hat{y}_i - y_i) \cdot \hat{r}_i$$
 
 **Problem:** Equal weight $\frac{1}{n}$ for all instances → majority class dominates.
@@ -274,12 +277,15 @@ $$\nabla_w L_{\text{sup}} = \frac{1}{n}\sum_{i=1}^n (\hat{y}_i - y_i) \cdot \hat
 ### Class-Weighted Supervised Loss
 
 Weighted binary cross-entropy:
+
 $$L_{\text{sup}}^{\text{weighted}} = -\sum_{i=1}^n \frac{w_{class(i)}}{\sum_j w_j} \left[y_i \log(\hat{y}_i) + (1-y_i)\log(1-\hat{y}_i)\right]$$
 
 where:
+
 $$w_{\text{pos}} = \frac{n}{2 \cdot n_{\text{pos}}}, \quad w_{\text{neg}} = \frac{n}{2 \cdot n_{\text{neg}}}$$
 
 **Gradient (class-weighted):**
+
 $$\nabla_w L_{\text{sup}}^{\text{weighted}} = \frac{\sum_{i=1}^n w_{class(i)} \cdot (\hat{y}_i - y_i) \cdot \hat{r}_i}{\sum_{i=1}^n w_{class(i)}}$$
 
 ### Why This Formula?
@@ -863,6 +869,7 @@ Beyond class-weighted loss (our current solution), here are other promising meth
 - **Proven in deep learning:** State-of-art in object detection (RetinaNet)
 
 **Formula:**
+
 $$FL(p_t) = -(1-p_t)^\gamma \log(p_t)$$
 
 where $\gamma$ (typically 2.0) controls down-weighting of easy examples.

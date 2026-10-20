@@ -196,12 +196,12 @@ Quick reference for notation used throughout:
 | $Y$ | Instance latent factors | $d \times n$ |
 | $x_u$ | Latent vector for classifier $u$ | $\mathbb{R}^d$ |
 | $y_i$ | Latent vector for data point $i$ | $\mathbb{R}^d$ |
-| $\hat{r}_{ui}$ | Reconstructed probability $= x_u^\top y_i$ | $[0,1]$ |
+| $\hat{r}_ {ui}$ | Reconstructed probability $= x_u^\top y_i$ | $[0,1]$ |
 | $C$ | Confidence/reliability weights | $m \times n$ |
-| $\mathcal{L}$ | Labeled point indices | $\subseteq \{1,\ldots,n\}$ |
-| $\mathcal{U}$ | Unlabeled point indices | $\subseteq \{1,\ldots,n\}$ |
+| $\mathcal{L}$ | Labeled point indices | $\subseteq \lbrace1,\ldots,n\rbrace$ |
+| $\mathcal{U}$ | Unlabeled point indices | $\subseteq \lbrace1,\ldots,n\rbrace$ |
 | $\rho$ | Trade-off: reconstruction vs supervision | $[0,1]$ |
-| $\lambda$ | Regularization strength | $\mathbb{R}_+$ |
+| $\lambda$ | Regularization strength | $\mathbb{R}_ +$ |
 | $d$ | Latent dimension | $\mathbb{N}$ |
 
 ---
@@ -253,7 +253,8 @@ The key insight: **Adding supervised loss teaches the model what "signal" means*
 If you're already familiar with collaborative filtering and want to dive straight into the method:
 
 1. **Core equation**:
-   $$\mathcal{L} = \rho \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, g(\hat{r}_{\cdot i}))$$
+
+   $$\mathcal{L} = \rho \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + (1-\rho) \sum_{i \in \mathcal{L}} \text{CE}(y_i, g(\hat{r}_ {\cdot i}))$$
 
 2. **Key hyperparameters**: $\rho \in [0.3, 0.7]$, $d \in [10, 50]$, $\lambda \in [0.01, 0.1]$
 

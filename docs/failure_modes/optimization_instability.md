@@ -11,7 +11,7 @@
 
 **Problem:** Original ALS implementation optimized **reconstruction only**, ignoring the supervised loss term.
 
-**Root Cause:** ALS was minimizing $L_{\text{recon}}$ when it should approximate $\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}} + (1-\rho) \cdot L_{\text{sup}}$
+**Root Cause:** ALS was minimizing $L_{\text{recon}}$ when it should approximate $\mathcal{L}_ {\text{CF}} = \rho \cdot L_{\text{recon}} + (1-\rho) \cdot L_{\text{sup}}$
 
 **Solutions:**
 1. **ALS + Label-Aware Confidence** (approximation, fast)
@@ -38,13 +38,14 @@ for iteration in range(max_iter):
 **The fundamental error:** ALS optimizes $L_{\text{recon}}$ only, completely ignoring $L_{\text{sup}}$!
 
 This is **NOT** what the KD-inspired combined loss intended:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}} + (1-\rho) \cdot L_{\text{sup}}$$
 
 ### Why This Fails
 
 **In Knowledge Distillation:**
 - You don't optimize soft targets and hard labels **separately**
-- You compute $\mathcal{L}_{\text{KD}} = \rho \cdot L(\text{soft}) + (1-\rho) \cdot L(\text{hard})$
+- You compute $\mathcal{L}_ {\text{KD}} = \rho \cdot L(\text{soft}) + (1-\rho) \cdot L(\text{hard})$
 - Then backprop through the **combined** loss
 
 **Original CF-Ensemble ALS was doing the equivalent of:**
@@ -175,6 +176,7 @@ Alternating optimization (e.g., EM, ALS) converges when:
 ## Why Can't ALS Optimize the Combined Loss Directly?
 
 **The challenge:** The combined loss is:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot \underbrace{\sum c_{ui}(r_{ui} - x_u^\top y_i)^2}_{\text{quadratic}} + (1-\rho) \cdot \underbrace{\sum CE(y_i, g_\theta(X^\top Y))}_{\text{NOT quadratic}}$$
 
 **ALS requires quadratic objectives** to get closed-form solutions.
@@ -198,15 +200,16 @@ Two valid approaches with different trade-offs:
 **Strategy:** Make ALS **approximate** the combined loss by modulating confidence weights.
 
 Instead of directly optimizing the combined loss, optimize:
-$$\min_{X,Y} \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|^2 + \|Y\|^2)$$
 
-where $\tilde{c}_{ui}$ is **label-aware**:
-- For $y_i = 1$: $\tilde{c}_{ui} = c_{ui}(1 + \alpha \cdot r_{ui})$ (reward high predictions)
-- For $y_i = 0$: $\tilde{c}_{ui} = c_{ui}(1 + \alpha \cdot (1-r_{ui}))$ (reward low predictions)
+$$\min_{X,Y} \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert^2 + \Vert Y\Vert^2)$$
+
+where $\tilde{c}_ {ui}$ is **label-aware**:
+- For $y_i = 1$: $\tilde{c}_ {ui} = c_{ui}(1 + \alpha \cdot r_{ui})$ (reward high predictions)
+- For $y_i = 0$: $\tilde{c}_ {ui} = c_{ui}(1 + \alpha \cdot (1-r_{ui}))$ (reward low predictions)
 
 **How this works:**
-- High $\tilde{c}_{ui}$ → ALS prioritizes reconstructing this $r_{ui}$ accurately
-- Label-aware weighting: High $\tilde{c}_{ui}$ when prediction agrees with label
+- High $\tilde{c}_ {ui}$ → ALS prioritizes reconstructing this $r_{ui}$ accurately
+- Label-aware weighting: High $\tilde{c}_ {ui}$ when prediction agrees with label
 - Result: ALS indirectly learns to preserve correct predictions
 
 **Implementation:**
@@ -402,14 +405,18 @@ X = (Y C Y^T + λI)^{-1} Y C R
 ### Why Joint Optimization Helps
 
 **Combined loss:**
+
 $$\mathcal{L}(X, Y, \theta) = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta)$$
 
 **Joint gradient descent:**
-$$\begin{align}
+
+$$
+\begin{align}
 X &\leftarrow X - \eta_X \cdot \nabla_X \mathcal{L} \\
 Y &\leftarrow Y - \eta_Y \cdot \nabla_Y \mathcal{L} \\
 \theta &\leftarrow \theta - \eta_\theta \cdot \nabla_\theta \mathcal{L}
-\end{align}$$
+\end{align}
+$$
 
 **Key property:** All gradients computed w.r.t. the SAME loss
 - $\nabla_X \mathcal{L}$ considers both reconstruction AND supervision

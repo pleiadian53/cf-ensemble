@@ -44,7 +44,7 @@ This is fundamentally different from model compression techniques like pruning o
 
 In standard supervised learning, we train classifiers using **hard labels**—one-hot encoded vectors:
 
-$$y_{\text{hard}} = [0, 0, 1, 0, \ldots, 0] \in \{0,1\}^K$$
+$$y_{\text{hard}} = [0, 0, 1, 0, \ldots, 0] \in \lbrace0,1\rbrace^K$$
 
 where $K$ is the number of classes. For a butterfly classifier, this might represent "class = monarch butterfly."
 
@@ -60,7 +60,8 @@ A trained teacher model produces **logits** $z_1, z_2, \ldots, z_K$ (unnormalize
 $$q_i = \frac{\exp(z_i)}{\sum_{j=1}^K \exp(z_j)}$$
 
 These probabilities encode *structural information*:
-$$q = [0.70, 0.25, 0.03, 0.02, \ldots] $$
+
+$$q = [0.70, 0.25, 0.03, 0.02, \ldots]$$
 
 This tells us: "70% monarch, 25% viceroy, 3% queen, 2% painted lady..."
 
@@ -76,13 +77,13 @@ The standard softmax can produce very sharp distributions (one class dominates, 
 
 $$q_i(T) = \frac{\exp(z_i / T)}{\sum_{j=1}^K \exp(z_j / T)}$$
 
-where $T > 0$ is the **temperature parameter**.
+where $T \gt 0$ is the **temperature parameter**.
 
 ### Effect of Temperature
 
 - **$T = 1$**: Standard softmax (default behavior)
-- **$T < 1$**: Sharper distribution (more confident, approaching hard labels)
-- **$T > 1$**: Softer distribution (reveals more class relationships)
+- **$T \lt 1$**: Sharper distribution (more confident, approaching hard labels)
+- **$T \gt 1$**: Softer distribution (reveals more class relationships)
 
 **Example**: Consider logits $[10, 8, 1, 0.5]$
 
@@ -111,27 +112,27 @@ Let's define our objects precisely:
 
 **Teacher model** (large, pre-trained):
 - Logits: $z^{(t)} = [z_1^{(t)}, \ldots, z_K^{(t)}] \in \mathbb{R}^K$
-- Soft targets: $q_t^T = \text{softmax}_T(z^{(t)})$
+- Soft targets: $q_t^T = \text{softmax}_ T(z^{(t)})$
 
 **Student model** (small, being trained):
 - Logits: $z^{(s)} = [z_1^{(s)}, \ldots, z_K^{(s)}] \in \mathbb{R}^K$
-- Soft predictions: $q_s^T = \text{softmax}_T(z^{(s)})$
-- Standard predictions: $q_s = \text{softmax}_1(z^{(s)})$
+- Soft predictions: $q_s^T = \text{softmax}_ T(z^{(s)})$
+- Standard predictions: $q_s = \text{softmax}_ 1(z^{(s)})$
 
 **Ground truth**:
-- Hard label: $y_g \in \{0,1\}^K$ (one-hot vector)
+- Hard label: $y_g \in \lbrace0,1\rbrace^K$ (one-hot vector)
 
 ### The Combined Loss
 
 The knowledge distillation loss combines two objectives:
 
-$$\boxed{\mathcal{L}_{\text{KD}} = \rho \cdot T^2 \cdot \text{KL}(q_t^T \| q_s^T) + (1-\rho) \cdot \text{CE}(y_g, q_s)}$$
+$$\boxed{\mathcal{L}_{\text{KD}} = \rho \cdot T^2 \cdot \text{KL}(q_t^T \Vert q_s^T) + (1-\rho) \cdot \text{CE}(y_g, q_s)}$$
 
 Let's unpack every component:
 
 #### Term 1: Distillation Loss (Imitation)
 
-$$L_{\text{distill}} = T^2 \cdot \text{KL}(q_t^T \| q_s^T) = T^2 \cdot \sum_{i=1}^K q_{t,i}^T \log \frac{q_{t,i}^T}{q_{s,i}^T}$$
+$$L_{\text{distill}} = T^2 \cdot \text{KL}(q_t^T \Vert q_s^T) = T^2 \cdot \sum_{i=1}^K q_{t,i}^T \log \frac{q_{t,i}^T}{q_{s,i}^T}$$
 
 This is the **Kullback-Leibler divergence** that measures how well the student's soft predictions match the teacher's soft targets.
 
@@ -149,7 +150,9 @@ $$L_{\text{supervised}} = \text{CE}(y_g, q_s) = -\sum_{i=1}^K y_{g,i} \log q_{s,
 This is standard **cross-entropy** with hard labels (using $T=1$ for the student).
 
 Since $y_g$ is one-hot, this reduces to:
+
 $$L_{\text{supervised}} = -\log q_{s,y}$$
+
 where $y$ is the true class index.
 
 **Purpose**: *"Don't forget to predict the correct labels"*
@@ -193,7 +196,7 @@ This would be problematic because we want $T$ to control **what information is r
 
 Multiplying by $T^2$ **neutralizes the gradient shrinkage**:
 
-$$\nabla_{z^{(s)}} \left[ T^2 \cdot \text{KL}(q_t^T \| q_s^T) \right] \approx \text{constant magnitude across } T$$
+$$\nabla_{z^{(s)}} \left[ T^2 \cdot \text{KL}(q_t^T \Vert q_s^T) \right] \approx \text{constant magnitude across } T$$
 
 This ensures:
 - $T$ controls the *softness* of distributions
@@ -286,18 +289,20 @@ Transfer intermediate attention maps, not just final predictions.
 
 ### Complete Formulation
 
-Given a dataset $\{(x_i, y_i)\}_{i=1}^N$:
+Given a dataset $\lbrace(x_i, y_i)\rbrace_{i=1}^N$:
 
 **Objective**:
-$$\min_{\theta_s} \frac{1}{N} \sum_{i=1}^N \left[ \rho \cdot T^2 \cdot \text{KL}\left(q_t^T(x_i) \| q_s^T(x_i; \theta_s)\right) + (1-\rho) \cdot \text{CE}\left(y_i, q_s(x_i; \theta_s)\right) \right]$$
+
+$$\min_{\theta_s} \frac{1}{N} \sum_{i=1}^N \left[ \rho \cdot T^2 \cdot \text{KL}\left(q_t^T(x_i) \Vert q_s^T(x_i; \theta_s)\right) + (1-\rho) \cdot \text{CE}\left(y_i, q_s(x_i; \theta_s)\right) \right]$$
 
 where:
 - $\theta_s$ are student parameters
-- $q_t^T(x_i) = \text{softmax}_T(f_t(x_i))$ (teacher, fixed)
-- $q_s^T(x_i; \theta_s) = \text{softmax}_T(f_s(x_i; \theta_s))$ (student, soft)
-- $q_s(x_i; \theta_s) = \text{softmax}_1(f_s(x_i; \theta_s))$ (student, hard)
+- $q_t^T(x_i) = \text{softmax}_ T(f_t(x_i))$ (teacher, fixed)
+- $q_s^T(x_i; \theta_s) = \text{softmax}_ T(f_s(x_i; \theta_s))$ (student, soft)
+- $q_s(x_i; \theta_s) = \text{softmax}_ 1(f_s(x_i; \theta_s))$ (student, hard)
 
 **Gradient** (w.r.t. student logits $z^{(s)}$):
+
 $$\nabla_{z^{(s)}} \mathcal{L}_{\text{KD}} = \rho \cdot T \cdot (q_s^T - q_t^T) + (1-\rho) \cdot (q_s - y_g)$$
 
 The first term encourages matching teacher probabilities; the second term encourages matching ground truth.

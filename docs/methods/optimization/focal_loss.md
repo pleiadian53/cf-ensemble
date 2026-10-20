@@ -225,6 +225,7 @@ Total loss = 1.22 (easy examples = only 0.8%!)
 $$L_{CE}(p, y) = -[y \log(p) + (1-y)\log(1-p)]$$
 
 Gradient w.r.t. prediction:
+
 $$\frac{\partial L_{CE}}{\partial p} = \frac{y - p}{p(1-p)}$$
 
 ### Focal Loss Formula

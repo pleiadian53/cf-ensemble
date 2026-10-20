@@ -9,6 +9,7 @@
 ## TL;DR
 
 **Goal:** Optimize the combined KD-inspired loss:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}}(X, Y) + (1-\rho) \cdot L_{\text{sup}}(X, Y, \theta)$$
 
 **Two approaches:**
@@ -24,13 +25,15 @@ Neither is "wrong" - they're different algorithmic choices with trade-offs.
 ### Why Can't ALS Optimize the Full Loss?
 
 **ALS works for quadratic objectives:**
-$$\min_{X, Y} \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|^2 + \|Y\|^2)$$
+
+$$\min_{X, Y} \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert^2 + \Vert Y\Vert^2)$$
 
 This has **closed-form solutions**:
 - Fix Y, solve for X: $(YC_uY^\top + \lambda I)x_u = YC_u r_u$
 - Fix X, solve for Y: $(XC_iX^\top + \lambda I)y_i = XC_i r_i$
 
 **The supervised loss is NOT quadratic:**
+
 $$L_{\text{sup}} = \sum_{i \in \mathcal{L}} \underbrace{-y_i \log \sigma(w^\top(X^\top y_i) + b)}_{\text{non-quadratic!}} - (1-y_i) \log(1-\sigma(...))$$
 
 - Contains $\sigma(\cdot)$ (sigmoid)
@@ -48,12 +51,14 @@ $$L_{\text{sup}} = \sum_{i \in \mathcal{L}} \underbrace{-y_i \log \sigma(w^\top(
 **Key insight:** Modulate confidence weights to incorporate supervision indirectly.
 
 Instead of directly optimizing:
+
 $$\mathcal{L}_{\text{CF}} = \rho \cdot L_{\text{recon}} + (1-\rho) \cdot L_{\text{sup}}$$
 
 Approximate by optimizing:
-$$\mathcal{L}_{\text{approx}} = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\|X\|^2 + \|Y\|^2)$$
 
-where $\tilde{c}_{ui}$ is **label-aware**:
+$$\mathcal{L}_{\text{approx}} = \sum_{u,i} \tilde{c}_{ui}(r_{ui} - x_u^\top y_i)^2 + \lambda(\Vert X\Vert^2 + \Vert Y\Vert^2)$$
+
+where $\tilde{c}_ {ui}$ is **label-aware**:
 
 ```python
 # For labeled instances:
@@ -74,6 +79,7 @@ c_ui = base_confidence  # Typically |r_ui - 0.5| (certainty)
 - Result: ALS "wants" to preserve correct predictions, discard errors
 
 **Mathematical connection:**
+
 $$\min_X \sum_{u,i} c_{ui}(r_{ui} - x_u^\top y_i)^2 \approx \min_X \left[\text{recon} + \alpha \cdot \text{supervision signal}\right]$$
 
 The label-aware weighting creates an **implicit supervision gradient**.
@@ -139,11 +145,13 @@ optimizer.step()  # X, Y, θ updated consistently
 
 **Key property:** All gradients computed w.r.t. **same unified loss**
 
-$$\begin{align}
-\nabla_X \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_X L_{\text{recon}} + (1-\rho) \cdot \nabla_X L_{\text{sup}} \\
-\nabla_Y \mathcal{L}_{\text{CF}} &= \rho \cdot \nabla_Y L_{\text{recon}} + (1-\rho) \cdot \nabla_Y L_{\text{sup}} \\
-\nabla_\theta \mathcal{L}_{\text{CF}} &= (1-\rho) \cdot \nabla_\theta L_{\text{sup}}
-\end{align}$$
+$$
+\begin{align}
+\nabla_X \mathcal{L}_ {\text{CF}} &= \rho \cdot \nabla_X L_{\text{recon}} + (1-\rho) \cdot \nabla_X L_{\text{sup}} \\
+\nabla_Y \mathcal{L}_ {\text{CF}} &= \rho \cdot \nabla_Y L_{\text{recon}} + (1-\rho) \cdot \nabla_Y L_{\text{sup}} \\
+\nabla_\theta \mathcal{L}_ {\text{CF}} &= (1-\rho) \cdot \nabla_\theta L_{\text{sup}}
+\end{align}
+$$
 
 - Each gradient considers **both** reconstruction AND supervision
 - Updates move in direction that decreases **total** loss
@@ -187,7 +195,8 @@ trainer.fit(data)
 ### How is KD Actually Optimized?
 
 **Loss:**
-$$\mathcal{L}_{\text{KD}} = \rho \cdot \underbrace{KL(q_{\text{teacher}} \| q_{\text{student}})}_{\text{soft targets}} + (1-\rho) \cdot \underbrace{CE(y, q_{\text{student}})}_{\text{hard labels}}$$
+
+$$\mathcal{L}_{\text{KD}} = \rho \cdot \underbrace{KL(q_{\text{teacher}} \Vert q_{\text{student}})}_{\text{soft targets}} + (1-\rho) \cdot \underbrace{CE(y, q_{\text{student}})}_{\text{hard labels}}$$
 
 **Optimization:**
 ```python
@@ -209,7 +218,8 @@ optimizer.step()  # Standard gradient descent
 ## The VAE Analogy
 
 **VAE loss:**
-$$\mathcal{L}_{\text{VAE}} = \underbrace{\mathbb{E}[\log p(x|z)]}_{\text{reconstruction}} + \underbrace{KL(q(z|x) \| p(z))}_{\text{prior regularization}}$$
+
+$$\mathcal{L}_{\text{VAE}} = \underbrace{\mathbb{E}[\log p(x|z)]}_{\text{reconstruction}} + \underbrace{KL(q(z|x) \Vert p(z))}_{\text{prior regularization}}$$
 
 **Optimization:**
 - Reconstruction: $\log p(x|z)$ (not quadratic due to likelihood)
