@@ -219,7 +219,8 @@ class ReliabilityWeightModel:
         R: np.ndarray,
         labels: np.ndarray,
         labeled_idx: np.ndarray,
-        classifier_stats: Optional[Dict[str, np.ndarray]] = None
+        classifier_stats: Optional[Dict[str, np.ndarray]] = None,
+        class_balanced: bool = False
     ) -> 'ReliabilityWeightModel':
         """
         Train reliability model on labeled data ONLY.
@@ -239,6 +240,10 @@ class ReliabilityWeightModel:
             Boolean mask indicating which instances are labeled
         classifier_stats : dict, optional
             Per-classifier performance metrics
+        class_balanced : bool, default=False
+            Weight each labeled cell by the inverse frequency of its instance's
+            class. Under heavy imbalance the unweighted target is dominated by
+            negatives, so a classifier that predicts ~0 everywhere looks reliable.
         
         Returns
         -------
@@ -287,8 +292,16 @@ class ReliabilityWeightModel:
         # Clip targets to [0, 1] (should already be, but ensure)
         targets_flat = np.clip(targets_flat, 0, 1)
         
-        # Train model
-        self.model.fit(features_labeled, targets_flat)
+        # Train model (optionally class-balanced: each class contributes equally)
+        sample_weight = None
+        if class_balanced:
+            y_cells = np.broadcast_to(y_labeled, R_labeled.shape).flatten()
+            n_pos = np.sum(y_cells == 1)
+            n_neg = y_cells.size - n_pos
+            if n_pos > 0 and n_neg > 0:
+                sample_weight = np.where(y_cells == 1, y_cells.size / (2 * n_pos),
+                                         y_cells.size / (2 * n_neg))
+        self.model.fit(features_labeled, targets_flat, sample_weight=sample_weight)
         
         # Store feature names for interpretability
         self.feature_names_ = [

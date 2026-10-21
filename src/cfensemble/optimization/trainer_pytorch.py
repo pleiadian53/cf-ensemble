@@ -52,6 +52,10 @@ class CFEnsembleNet(nn.Module):
         Latent dimensionality
     aggregator_type : str
         Type of aggregator ('mean' or 'weighted')
+    link : str
+        'identity': R_hat = X^T Y (squared-error reconstruction).
+        'logit': R_hat = sigmoid(X^T Y + b_u + b_i) with classifier biases b_u and
+        instance biases b_i (cross-entropy reconstruction against R).
     """
     
     def __init__(
@@ -59,7 +63,8 @@ class CFEnsembleNet(nn.Module):
         m: int,
         n: int,
         d: int,
-        aggregator_type: str = 'weighted'
+        aggregator_type: str = 'weighted',
+        link: str = 'identity'
     ):
         super().__init__()
         
@@ -67,12 +72,20 @@ class CFEnsembleNet(nn.Module):
         self.n = n
         self.d = d
         self.aggregator_type = aggregator_type
+        if link not in ('identity', 'logit'):
+            raise ValueError(f"link must be 'identity' or 'logit', got {link!r}")
+        self.link = link
         
         # Classifier latent factors (d × m)
         self.X = nn.Parameter(torch.randn(d, m) * 0.01)
         
         # Instance latent factors (d × n)
         self.Y = nn.Parameter(torch.randn(d, n) * 0.01)
+        
+        # Classifier / instance biases (logit link only)
+        if link == 'logit':
+            self.b_u = nn.Parameter(torch.zeros(m, 1))
+            self.b_i = nn.Parameter(torch.zeros(1, n))
         
         # Aggregator parameters
         if aggregator_type == 'weighted':
@@ -82,16 +95,35 @@ class CFEnsembleNet(nn.Module):
             self.register_buffer('w', torch.ones(m) / m)
             self.register_buffer('b', torch.zeros(1))
     
+    def scores(self, idx: Optional[torch.Tensor] = None, detach_instances: bool = False) -> torch.Tensor:
+        """
+        Pre-link scores X^T Y (+ b_u + b_i for the logit link), for all or ``idx`` columns.
+        
+        ``detach_instances`` detaches the instance factors (and instance biases).
+        """
+        Y = self.Y if idx is None else self.Y[:, idx]
+        if detach_instances:
+            Y = Y.detach()
+        Z = self.X.T @ Y
+        if self.link == 'logit':
+            b_i = self.b_i if idx is None else self.b_i[:, idx]
+            if detach_instances:
+                b_i = b_i.detach()
+            Z = Z + self.b_u + b_i
+        return Z
+    
     def reconstruct(self) -> torch.Tensor:
         """
-        Reconstruct probability matrix: R_hat = X^T @ Y
+        Reconstruct probability matrix: R_hat = X^T Y, or sigmoid(X^T Y + b_u + b_i)
+        for the logit link.
         
         Returns:
         --------
         R_hat : Tensor (m × n)
             Reconstructed probabilities
         """
-        return self.X.T @ self.Y  # (m × n)
+        Z = self.scores()
+        return torch.sigmoid(Z) if self.link == 'logit' else Z
     
     def aggregate(self, R_hat_subset: torch.Tensor) -> torch.Tensor:
         """
@@ -134,10 +166,8 @@ class CFEnsembleNet(nn.Module):
 
     def _reconstruct_subset(self, idx: torch.Tensor, detach_instances: bool = False) -> torch.Tensor:
         """R_hat columns for ``idx`` (m × len(idx)), optionally with y_i detached."""
-        Y_subset = self.Y[:, idx]
-        if detach_instances:
-            Y_subset = Y_subset.detach()
-        return self.X.T @ Y_subset
+        Z = self.scores(idx, detach_instances)
+        return torch.sigmoid(Z) if self.link == 'logit' else Z
     
     def compute_loss(
         self,
@@ -196,13 +226,18 @@ class CFEnsembleNet(nn.Module):
             Dictionary with loss components for logging
         """
         # 1. Reconstruction loss
-        R_hat = self.reconstruct()
-        residuals = R - R_hat
-        weighted_residuals = C * (residuals ** 2)
-        recon_loss = torch.sum(weighted_residuals)
+        if self.link == 'logit':
+            entry_loss = nn.functional.binary_cross_entropy_with_logits(
+                self.scores(), R, reduction='none'
+            )
+        else:
+            entry_loss = (R - self.reconstruct()) ** 2
+        recon_loss = torch.sum(C * entry_loss)
         
         # 2. Regularization
         reg_loss = lambda_reg * (torch.sum(self.X ** 2) + torch.sum(self.Y ** 2))
+        if self.link == 'logit':
+            reg_loss = reg_loss + lambda_reg * torch.sum(self.b_i ** 2)  # m obs per b_i
         if normalize_recon:
             recon_loss = recon_loss / R.numel()
             reg_loss = reg_loss / R.numel()
@@ -310,6 +345,9 @@ class CFEnsemblePyTorchTrainer:
     lambda_g : float, default=0.0
         L2 penalty on the aggregator weights; 1 / (2·n_labeled) matches
         scikit-learn's LogisticRegression(C=1), the stacking baseline's combiner.
+    link : str, default='identity'
+        'logit' reconstructs R as sigmoid(X^T Y + b_u + b_i) with cross-entropy;
+        b_u absorbs a classifier's overall shift, b_i an instance's positivity.
     device : str, default='auto'
         Device ('cpu', 'cuda', or 'auto')
     verbose : bool, default=True
@@ -358,6 +396,7 @@ class CFEnsemblePyTorchTrainer:
         normalize_recon: bool = False,
         sup_updates_instances: bool = True,
         lambda_g: float = 0.0,
+        link: str = 'identity',
         device: str = 'auto',
         verbose: bool = True,
         random_seed: Optional[int] = None
@@ -383,6 +422,7 @@ class CFEnsemblePyTorchTrainer:
         self.normalize_recon = normalize_recon
         self.sup_updates_instances = sup_updates_instances
         self.lambda_g = lambda_g
+        self.link = link
         self.verbose = verbose
         self.random_seed = random_seed
         
@@ -454,7 +494,8 @@ class CFEnsemblePyTorchTrainer:
             m=m,
             n=n,
             d=self.latent_dim,
-            aggregator_type=self.aggregator_type
+            aggregator_type=self.aggregator_type,
+            link=self.link
         ).to(self.device)
         
         # Initialize optimizer
@@ -573,6 +614,10 @@ class CFEnsemblePyTorchTrainer:
                 predictions = self.model.aggregate(R_hat)
                 return predictions.cpu().numpy()
             else:
+                if self.link != 'identity':
+                    raise NotImplementedError(
+                        "Inductive prediction (R_new) is only implemented for link='identity'"
+                    )
                 # Inductive: compute new Y factors (cold start)
                 # For now, use simple approach (can be improved)
                 R_new_torch = torch.from_numpy(R_new).float().to(self.device)
