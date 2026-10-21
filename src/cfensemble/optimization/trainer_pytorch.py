@@ -149,7 +149,8 @@ class CFEnsembleNet(nn.Module):
         lambda_reg: float,
         use_class_weights: bool = True,
         normalize_recon: bool = False,
-        sup_updates_instances: bool = True
+        sup_updates_instances: bool = True,
+        lambda_g: float = 0.0
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
         Compute combined loss: ρ·L_recon + (1-ρ)·L_sup
@@ -182,6 +183,10 @@ class CFEnsembleNet(nn.Module):
             If False, the supervised loss does not update the labeled instance
             factors y_i (only X and the aggregator), so labeled columns cannot bend
             toward their labels while unlabeled columns stay put.
+        lambda_g : float, default=0.0
+            L2 penalty on the aggregator weights w (not the bias), added inside the
+            supervised term. lambda_g = 1 / (2·n_labeled) matches scikit-learn's
+            LogisticRegression(C=1) on the same inputs.
 
         Returns:
         --------
@@ -241,6 +246,8 @@ class CFEnsembleNet(nn.Module):
             else:
                 # Standard unweighted average
                 sup_loss = torch.mean(bce)
+            if lambda_g > 0 and self.aggregator_type != 'mean':
+                sup_loss = sup_loss + lambda_g * torch.sum(self.w ** 2)
         else:
             sup_loss = torch.tensor(0.0, device=R.device)
         
@@ -300,6 +307,9 @@ class CFEnsemblePyTorchTrainer:
     sup_updates_instances : bool, default=True
         If False, supervision updates X and the aggregator but not the labeled
         instance factors (stop-gradient), avoiding a train/test mismatch for g.
+    lambda_g : float, default=0.0
+        L2 penalty on the aggregator weights; 1 / (2·n_labeled) matches
+        scikit-learn's LogisticRegression(C=1), the stacking baseline's combiner.
     device : str, default='auto'
         Device ('cpu', 'cuda', or 'auto')
     verbose : bool, default=True
@@ -347,6 +357,7 @@ class CFEnsemblePyTorchTrainer:
         focal_gamma: float = 0.0,
         normalize_recon: bool = False,
         sup_updates_instances: bool = True,
+        lambda_g: float = 0.0,
         device: str = 'auto',
         verbose: bool = True,
         random_seed: Optional[int] = None
@@ -371,6 +382,7 @@ class CFEnsemblePyTorchTrainer:
         self.focal_gamma = focal_gamma
         self.normalize_recon = normalize_recon
         self.sup_updates_instances = sup_updates_instances
+        self.lambda_g = lambda_g
         self.verbose = verbose
         self.random_seed = random_seed
         
@@ -484,7 +496,8 @@ class CFEnsemblePyTorchTrainer:
                 self.rho, self.lambda_reg,
                 self.use_class_weights,
                 self.normalize_recon,
-                self.sup_updates_instances
+                self.sup_updates_instances,
+                self.lambda_g
             )
             loss.backward()
             self.optimizer.step()

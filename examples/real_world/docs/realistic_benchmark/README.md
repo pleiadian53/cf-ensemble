@@ -1,6 +1,6 @@
 # Realistic Benchmark: Stacking vs. Two-Stage vs. Joint CF-Ensemble
 
-**Status:** in progress (smoke test done; COFFIN next) · **Started:** 2026-10-20
+**Status:** in progress (protein_homo and COFFIN done; next step under discussion) · **Started:** 2026-10-20
 **Code:** [`examples/real_world/`](../../) · **Compute:** RunPod pod via [`ops/`](../../../../ops/README.md)
 
 The January benchmarks used synthetic data on which simple averaging already reached
@@ -18,6 +18,7 @@ moves to real, noisy, highly imbalanced data and asks one question:
 | [01_experimental_design.md](01_experimental_design.md) | Datasets, splits, methods, metrics, and the design choices behind them |
 | [02_hypotheses_and_predictions.md](02_hypotheses_and_predictions.md) | When the joint objective should help, where it sits in the literature, pre-registered predictions |
 | [03_results_protein_homo_smoke.md](03_results_protein_homo_smoke.md) | Smoke-test results, prediction scorecard, labeled-point distortion diagnostic, bugs fixed |
+| [04_results_coffin_splice.md](04_results_coffin_splice.md) | COFFIN results: ensemble selection wins; why joint training fails; options |
 
 ## Pipeline
 

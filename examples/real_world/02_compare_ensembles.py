@@ -13,11 +13,13 @@ Baselines:
 - stacking       logistic regression on raw R[:, L]
 
 CF methods (same PyTorch factorization model and optimizer; g = logistic regression),
-swept over latent dim d and confidence weighting (certainty |r−0.5| or uniform):
+swept over latent dim d and confidence weighting (uniform by default; certainty |r−0.5|
+lost to uniform on protein_homo). The joint g gets the same L2 penalty as the sklearn
+combiner (--g-l2 auto: lambda_g = 1/(2|L|), i.e. LogisticRegression(C=1)):
 - two_stage      factorize with ρ=1 (labels unused), then LR on R̂[:, L]
 - joint          ρ·L_recon + (1−ρ)·L_sup trained jointly, per ρ
 - joint_sg       same, but supervision does not update labeled y_i (stop-gradient)
-- joint_sum      original summed reconstruction loss (diagnostic; first d only)
+- joint_sum      original summed reconstruction loss (with --diagnostics; first d only)
 
 Usage (on the pod):
     python examples/real_world/02_compare_ensembles.py --dataset protein_homo \
@@ -48,15 +50,19 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--dataset", required=True)
     p.add_argument("--out-root", default="output")
     p.add_argument("--base-seed", type=int, default=0, help="which step-1 run to load")
+    p.add_argument("--tag", default="", help="suffix for the output dir, so reruns never overwrite")
     p.add_argument("--label-fracs", type=float, nargs="+", default=[0.02, 0.05, 0.2])
     p.add_argument("--seeds", type=int, nargs="+", default=[0, 1, 2])
     p.add_argument("--latent-dims", type=int, nargs="+", default=[2, 4, 8],
                    help="keep d < m: with d >= m the factorization can reproduce R exactly")
-    p.add_argument("--confidence", nargs="+", default=["certainty", "uniform"],
+    p.add_argument("--confidence", nargs="+", default=["uniform"],
                    choices=["certainty", "uniform"])
     p.add_argument("--rhos", type=float, nargs="+", default=[0.1, 0.5, 0.9])
-    p.add_argument("--sg-rhos", type=float, nargs="+", default=[0.1, 0.5],
+    p.add_argument("--sg-rhos", type=float, nargs="+", default=[0.1, 0.5, 0.9],
                    help="ρ values for the stop-gradient variant")
+    p.add_argument("--g-l2", choices=["auto", "0"], default="auto",
+                   help="L2 on joint g weights: auto = 1/(2|L|) (matches sklearn C=1), 0 = none")
+    p.add_argument("--diagnostics", action="store_true", help="also run joint_sum (original loss)")
     p.add_argument("--lambda-reg", type=float, default=0.01)
     p.add_argument("--max-epochs", type=int, default=1000)
     p.add_argument("--lr", type=float, default=0.01)
@@ -77,11 +83,11 @@ def make_data(R: np.ndarray, labels: np.ndarray, confidence: str) -> EnsembleDat
 
 
 def make_trainer(args, m: int, d: int, rho: float, seed: int, normalize: bool = True,
-                 sup_updates_instances: bool = True) -> CFEnsemblePyTorchTrainer:
+                 sup_updates_instances: bool = True, lambda_g: float = 0.0) -> CFEnsemblePyTorchTrainer:
     return CFEnsemblePyTorchTrainer(
         n_classifiers=m, latent_dim=d, rho=rho, lambda_reg=args.lambda_reg,
         max_epochs=args.max_epochs, lr=args.lr, patience=args.patience, min_delta=args.min_delta,
-        normalize_recon=normalize, sup_updates_instances=sup_updates_instances,
+        normalize_recon=normalize, sup_updates_instances=sup_updates_instances, lambda_g=lambda_g,
         verbose=False, random_seed=seed,
     )
 
@@ -89,7 +95,7 @@ def make_trainer(args, m: int, d: int, rho: float, seed: int, normalize: bool = 
 def main() -> None:
     args = parse_args()
     base_dir = Path(args.out_root) / "benchmarks" / args.dataset / f"base_seed{args.base_seed}"
-    out_dir = base_dir.parent / f"compare_base{args.base_seed}"
+    out_dir = base_dir.parent / f"compare_base{args.base_seed}{'_' + args.tag if args.tag else ''}"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     data = np.load(base_dir / "R_ens.npz")
@@ -130,6 +136,7 @@ def main() -> None:
             L, T = next(split.split(np.zeros(n), y))
             labels = np.full(n, np.nan)
             labels[L] = y[L]
+            lambda_g = 1.0 / (2 * len(L)) if args.g_l2 == "auto" else 0.0
 
             record("mean", frac, seed, R[:, T].mean(axis=0), T, 0.0)
             record("summa", frac, seed, summa_scores[T], T, 0.0)
@@ -151,11 +158,11 @@ def main() -> None:
 
                     variants = [("joint", rho, True, True) for rho in args.rhos]
                     variants += [("joint_sg", rho, True, False) for rho in args.sg_rhos]
-                    if d == args.latent_dims[0] and conf == args.confidence[0]:
+                    if args.diagnostics and d == args.latent_dims[0] and conf == args.confidence[0]:
                         variants.append(("joint_sum", 0.5, False, True))
                     for method, rho, normalize, sup_inst in variants:
                         t0 = time.time()
-                        tr = make_trainer(args, m, d, rho, seed, normalize, sup_inst)
+                        tr = make_trainer(args, m, d, rho, seed, normalize, sup_inst, lambda_g)
                         tr.fit(make_data(R, labels, conf))
                         record(method, frac, seed, tr.predict()[T], T, time.time() - t0,
                                d, conf, rho, tr.n_epochs_)
