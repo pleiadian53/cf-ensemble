@@ -1,27 +1,19 @@
 # Real-World Dataset Examples
 
-**Status**: Planned ⏳ (Phase 5)
+**Status**: In progress (Phase 5: real-world validation)
 
-Examples using real biomedical, UCI, and Kaggle datasets.
+CF-Ensemble on real, noisy, highly imbalanced biomedical data, run on a RunPod GPU pod via
+[`ops/`](../../ops/README.md) (never locally). Scripts here are meant to mature: once stable,
+the reusable parts graduate into an application layer and then `src/`.
 
----
+## Realistic benchmark
 
-## Planned Examples
+Stacking vs. two-stage vs. joint CF-Ensemble. Design, hypotheses and results:
+[docs/realistic_benchmark/](docs/realistic_benchmark/README.md).
 
-### `train_base_models.py`
-Helper script to train diverse ensemble on any dataset
-
-### `uci_datasets.py`
-Benchmarks on UCI ML Repository datasets
-
-### `kaggle_competition.py`
-Example using Kaggle competition data
-
-### `biomedical_case_study.py`
-Medical dataset analysis (if available)
-
----
-
-**Phase**: 5 (Real-World Validation)  
-**Status**: Planned ⏳  
-**Dependencies**: Access to datasets, Phase 4 complete
+| File | Role |
+|---|---|
+| `benchmark_data.py` | Dataset registry and loaders (`protein_homo`, `coffin_splice`) |
+| `base_models.py` | Heterogeneous scikit-learn base classifiers |
+| `01_generate_base_predictions.py` | Train base models on D_base, build probability matrix R on D_ens |
+| `02_compare_ensembles.py` | Compare ensemble methods over label budgets and seeds |
