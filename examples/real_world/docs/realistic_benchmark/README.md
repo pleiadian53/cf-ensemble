@@ -19,6 +19,7 @@ moves to real, noisy, highly imbalanced data and asks one question:
 | [02_hypotheses_and_predictions.md](02_hypotheses_and_predictions.md) | When the joint objective should help, where it sits in the literature, pre-registered predictions |
 | [03_results_protein_homo_smoke.md](03_results_protein_homo_smoke.md) | Smoke-test results, prediction scorecard, labeled-point distortion diagnostic, bugs fixed |
 | [04_results_coffin_splice.md](04_results_coffin_splice.md) | COFFIN results: ensemble selection wins; why joint training fails; options |
+| [05_results_confidence_and_link.md](05_results_confidence_and_link.md) | Confidence weighting × logit link × combiner on R̂: CF reaches parity with ensemble selection |
 
 ## Pipeline
 
@@ -35,6 +36,9 @@ benchmark_data.py ──▶ 01_generate_base_predictions.py ──▶ 02_compare
 | `base_models.py` | Heterogeneous scikit-learn base classifiers |
 | `01_generate_base_predictions.py` | Disjoint D_base / D_ens split → probability matrix R on the volume |
 | `02_compare_ensembles.py` | All ensemble methods on R; writes `results.csv`, `summary.csv` |
+| `03_confidence_and_link.py` | Confidence × link × combiner on R̂ (two-stage CF) |
+| `confidence.py` | Confidence matrices: uniform, per-classifier, learned cell-level |
+| `combiners.py` | Logistic regression, ensemble selection, SUMMA |
 
 ## Running (on the pod, never locally)
 

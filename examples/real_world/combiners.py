@@ -1,6 +1,7 @@
 """
 Non-CF baseline combiners for the realistic benchmark.
 
+- ``fit_lr``: class-balanced logistic regression (the stacking combiner)
 - ``ensemble_selection``: Caruana et al. (2004) greedy forward selection with
   replacement, maximizing PR-AUC on the labeled set. A strong practical baseline.
 - ``summa``: label-free spectral combiner for ranked predictions (Ahsen, Vogel &
@@ -12,7 +13,15 @@ Non-CF baseline combiners for the realistic benchmark.
 
 import numpy as np
 from scipy.stats import rankdata
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score
+
+
+def fit_lr(features_L: np.ndarray, y_L: np.ndarray, features_T: np.ndarray) -> np.ndarray:
+    """Logistic-regression combiner; class-balanced like the CF trainers' supervised loss."""
+    lr = LogisticRegression(class_weight="balanced", max_iter=2000)
+    lr.fit(features_L, y_L)
+    return lr.predict_proba(features_T)[:, 1]
 
 
 def ensemble_selection(R_L: np.ndarray, y_L: np.ndarray, n_iter: int = 50) -> np.ndarray:

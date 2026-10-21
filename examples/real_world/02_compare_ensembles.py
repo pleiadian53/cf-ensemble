@@ -34,13 +34,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import average_precision_score, roc_auc_score
 from sklearn.model_selection import StratifiedShuffleSplit
 
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-from combiners import ensemble_selection, summa  # noqa: E402
+from combiners import ensemble_selection, fit_lr, summa  # noqa: E402
 from cfensemble.data import EnsembleData  # noqa: E402
 from cfensemble.optimization.trainer_pytorch import CFEnsemblePyTorchTrainer  # noqa: E402
 
@@ -69,13 +68,6 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--patience", type=int, default=30)
     p.add_argument("--min-delta", type=float, default=1e-6)
     return p.parse_args()
-
-
-def fit_lr(features_L: np.ndarray, y_L: np.ndarray, features_T: np.ndarray) -> np.ndarray:
-    """Logistic-regression combiner; class-balanced like the CF trainers' supervised loss."""
-    lr = LogisticRegression(class_weight="balanced", max_iter=2000)
-    lr.fit(features_L, y_L)
-    return lr.predict_proba(features_T)[:, 1]
 
 
 def make_data(R: np.ndarray, labels: np.ndarray, confidence: str) -> EnsembleData:
