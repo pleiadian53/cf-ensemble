@@ -34,6 +34,12 @@ class GpuSpec:
 
 
 GPU_SPECS: dict[str, GpuSpec] = {
+    # Budget cards in the volume's datacenter (CA-MTL-1, secure cloud, SkyPilot catalog).
+    # Plenty for CF-Ensemble (tiny GPU footprint); sklearn base models want the vCPUs.
+    "rtx2000ada": GpuSpec("RTX2000-Ada:1", 16, 0.24),   # 6 vCPU
+    "rtxa4000": GpuSpec("RTXA4000:1", 16, 0.25),        # 6 vCPU
+    "rtxa4500": GpuSpec("RTXA4500:1", 20, 0.25),        # 7 vCPU
+    "rtx4000ada": GpuSpec("RTX4000-Ada:1", 20, 0.28),   # 8 vCPU, 47 GB RAM
     "l4": GpuSpec("L4:1", 24, 0.43),
     "rtx4090": GpuSpec("RTX4090:1", 24, 0.69),
     "rtx5090": GpuSpec("RTX5090:1", 32, 0.89),
@@ -249,6 +255,13 @@ def _require_sky() -> None:
         )
 
 
+def _cluster_is_up(name: str) -> bool:
+    """True if ``sky status`` lists cluster ``name`` as UP (or INIT, i.e. it exists and bills)."""
+    out = subprocess.run(["sky", "status", name], capture_output=True, text=True, check=False).stdout
+    return any(line.split()[:1] == [name] and ("UP" in line or "INIT" in line)
+               for line in out.splitlines())
+
+
 def _run(cmd: list[str]) -> subprocess.CompletedProcess:
     print(f"[cf-ops] $ {' '.join(cmd)}")
     return subprocess.run(cmd, check=True)
@@ -282,6 +295,9 @@ def launch(
             _run(["sky", "launch", str(yaml_path), "-y", "-c", cluster_name])
             launched = True
         except subprocess.CalledProcessError as e:
+            # `sky launch` also fails when the pod came up but the JOB failed. Ask
+            # SkyPilot rather than assume: a live pod must be reported (and torn down).
+            launched = _cluster_is_up(cluster_name)
             raise RuntimeError(
                 f"job failed on cluster '{cluster_name}'. Inspect logs:\n"
                 f"    sky logs {cluster_name}\n"

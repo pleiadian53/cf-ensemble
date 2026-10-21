@@ -69,4 +69,4 @@ def test_print_dry_run_writes_generated_yaml(capsys):
     path = print_dry_run(cfg, infra, "runs")
     assert Path(path).exists()
     out = capsys.readouterr().out
-    assert "DRY RUN" in out and "A40:1" in out
+    assert "DRY RUN" in out and infra.accelerator in out
