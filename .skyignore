@@ -1,0 +1,28 @@
+# Keep the SkyPilot workdir upload lean — exclude local artifacts and caches.
+#
+# IMPORTANT: patterns are ANCHORED to the repo root with a leading slash. A bare
+# `data` is gitignore-style and matches at ANY depth — it would exclude the
+# `src/cfensemble/data` subpackage from the upload and break `import
+# cfensemble.data` on the pod. Leading-slash keeps them top-level.
+/data
+/output
+/outputs
+/runs
+/results
+/site
+/docs
+/dev
+/notebooks
+/archive
+/demo
+/images
+/ops/configs/skypilot/generated
+
+# These are safe to exclude everywhere (no source collisions):
+.git
+__pycache__
+*.pyc
+.pytest_cache
+.DS_Store
+*.egg-info
+.ipynb_checkpoints

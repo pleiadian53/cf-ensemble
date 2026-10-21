@@ -67,6 +67,7 @@ dmypy.json
 # Project specific
 checkpoints/
 outputs/
+/output/
 logs/
 data/raw/
 data/processed/
