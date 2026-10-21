@@ -113,23 +113,31 @@ class CFEnsembleNet(nn.Module):
             logits = self.w @ R_hat_subset + self.b  # (n_subset,)
             return torch.sigmoid(logits)
     
-    def forward(self, labeled_idx: torch.Tensor) -> torch.Tensor:
+    def forward(self, labeled_idx: torch.Tensor, detach_instances: bool = False) -> torch.Tensor:
         """
         Forward pass: reconstruct + aggregate for labeled instances.
-        
+
         Parameters:
         -----------
         labeled_idx : Tensor (n_labeled,)
             Indices of labeled instances
-        
+        detach_instances : bool, default=False
+            If True, the labeled instance factors are detached, so the supervised
+            loss updates X and the aggregator but not the labeled y_i
+
         Returns:
         --------
         y_pred : Tensor (n_labeled,)
             Predictions for labeled instances
         """
-        R_hat = self.reconstruct()
-        R_hat_labeled = R_hat[:, labeled_idx]
-        return self.aggregate(R_hat_labeled)
+        return self.aggregate(self._reconstruct_subset(labeled_idx, detach_instances))
+
+    def _reconstruct_subset(self, idx: torch.Tensor, detach_instances: bool = False) -> torch.Tensor:
+        """R_hat columns for ``idx`` (m × len(idx)), optionally with y_i detached."""
+        Y_subset = self.Y[:, idx]
+        if detach_instances:
+            Y_subset = Y_subset.detach()
+        return self.X.T @ Y_subset
     
     def compute_loss(
         self,
@@ -139,7 +147,9 @@ class CFEnsembleNet(nn.Module):
         labeled_mask: torch.Tensor,
         rho: float,
         lambda_reg: float,
-        use_class_weights: bool = True
+        use_class_weights: bool = True,
+        normalize_recon: bool = False,
+        sup_updates_instances: bool = True
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
         Compute combined loss: ρ·L_recon + (1-ρ)·L_sup
@@ -163,7 +173,16 @@ class CFEnsembleNet(nn.Module):
             Regularization strength
         use_class_weights : bool, default=True
             If True, weight instances by inverse class frequency
-        
+        normalize_recon : bool, default=False
+            If True, divide reconstruction + regularization by m·n so both loss
+            terms are per-entry averages and ρ balances quantities of similar
+            scale. Otherwise the summed reconstruction term grows with n and
+            swamps the (mean) supervised term on large datasets.
+        sup_updates_instances : bool, default=True
+            If False, the supervised loss does not update the labeled instance
+            factors y_i (only X and the aggregator), so labeled columns cannot bend
+            toward their labels while unlabeled columns stay put.
+
         Returns:
         --------
         loss : Tensor (scalar)
@@ -179,18 +198,28 @@ class CFEnsembleNet(nn.Module):
         
         # 2. Regularization
         reg_loss = lambda_reg * (torch.sum(self.X ** 2) + torch.sum(self.Y ** 2))
+        if normalize_recon:
+            recon_loss = recon_loss / R.numel()
+            reg_loss = reg_loss / R.numel()
         
         # 3. Supervised loss (only on labeled instances)
         if torch.sum(labeled_mask) > 0:
             labeled_idx = torch.where(labeled_mask)[0]
-            y_pred = self.forward(labeled_idx)
+            R_hat_labeled = self._reconstruct_subset(labeled_idx, not sup_updates_instances)
             y_true = labels[labeled_mask]
-            
-            # Binary cross-entropy with numerical stability
-            eps = 1e-15
-            y_pred_clipped = torch.clamp(y_pred, eps, 1 - eps)
-            bce = -(y_true * torch.log(y_pred_clipped) +
-                   (1 - y_true) * torch.log(1 - y_pred_clipped))
+
+            # Binary cross-entropy. The weighted aggregator uses the logit form, which
+            # is numerically stable; clamping probabilities at 1 - 1e-15 does nothing in
+            # float32 (it rounds to 1.0), so saturated sigmoids gave log(0) -> NaN.
+            if self.aggregator_type == 'mean':
+                eps = 1e-7  # representable in float32
+                y_pred = torch.clamp(self.aggregate(R_hat_labeled), eps, 1 - eps)
+                bce = -(y_true * torch.log(y_pred) + (1 - y_true) * torch.log(1 - y_pred))
+            else:
+                logits = self.w @ R_hat_labeled + self.b
+                bce = nn.functional.binary_cross_entropy_with_logits(
+                    logits, y_true, reduction='none'
+                )
             
             # Apply class weighting if enabled
             if use_class_weights:
@@ -264,6 +293,13 @@ class CFEnsemblePyTorchTrainer:
     use_class_weights : bool, default=True
         If True, weight instances by inverse class frequency in supervised loss
         Essential for imbalanced data to prevent majority class domination
+    normalize_recon : bool, default=False
+        If True, average (rather than sum) the reconstruction and regularization
+        terms over the m·n entries, so ρ keeps its meaning as n grows. Recommended
+        for large datasets; the default keeps earlier results reproducible.
+    sup_updates_instances : bool, default=True
+        If False, supervision updates X and the aggregator but not the labeled
+        instance factors (stop-gradient), avoiding a train/test mismatch for g.
     device : str, default='auto'
         Device ('cpu', 'cuda', or 'auto')
     verbose : bool, default=True
@@ -309,6 +345,8 @@ class CFEnsemblePyTorchTrainer:
         min_delta: float = 1e-4,
         use_class_weights: bool = True,
         focal_gamma: float = 0.0,
+        normalize_recon: bool = False,
+        sup_updates_instances: bool = True,
         device: str = 'auto',
         verbose: bool = True,
         random_seed: Optional[int] = None
@@ -331,6 +369,8 @@ class CFEnsemblePyTorchTrainer:
         self.min_delta = min_delta
         self.use_class_weights = use_class_weights
         self.focal_gamma = focal_gamma
+        self.normalize_recon = normalize_recon
+        self.sup_updates_instances = sup_updates_instances
         self.verbose = verbose
         self.random_seed = random_seed
         
@@ -442,7 +482,9 @@ class CFEnsemblePyTorchTrainer:
             loss, loss_dict = self.model.compute_loss(
                 R, C, labels, labeled_mask,
                 self.rho, self.lambda_reg,
-                self.use_class_weights
+                self.use_class_weights,
+                self.normalize_recon,
+                self.sup_updates_instances
             )
             loss.backward()
             self.optimizer.step()
