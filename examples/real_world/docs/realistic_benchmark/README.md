@@ -1,6 +1,6 @@
 # Realistic Benchmark: Stacking vs. Two-Stage vs. Joint CF-Ensemble
 
-**Status:** in progress (protein_homo and COFFIN done; next step under discussion) · **Started:** 2026-10-20
+**Status:** in progress (CF + ensemble selection on R̂ confirmed; in-model selection next) · **Started:** 2026-10-20
 **Code:** [`examples/real_world/`](../../) · **Compute:** RunPod pod via [`ops/`](../../../../ops/README.md)
 
 The January benchmarks used synthetic data on which simple averaging already reached
@@ -22,6 +22,7 @@ moves to real, noisy, highly imbalanced data and asks one question:
 | [05_results_confidence_and_link.md](05_results_confidence_and_link.md) | Confidence weighting × logit link × combiner on R̂: CF reaches parity with ensemble selection |
 | [06_confirmation_preregistration.md](06_confirmation_preregistration.md) | Pre-registered confirmation of the two best CF configurations on fresh seeds |
 | [07_results_confirmation.md](07_results_confirmation.md) | Both hypotheses confirmed on fresh seeds (small effects); confidence type is dataset-dependent |
+| [08_results_joint_simplex.md](08_results_joint_simplex.md) | Selection inside CF via a softmax combiner fails: the BCE objective picks extreme-probability models; needs a ranking loss |
 
 ## Pipeline
 
@@ -39,6 +40,7 @@ benchmark_data.py ──▶ 01_generate_base_predictions.py ──▶ 02_compare
 | `01_generate_base_predictions.py` | Disjoint D_base / D_ens split → probability matrix R on the volume |
 | `02_compare_ensembles.py` | All ensemble methods on R; writes `results.csv`, `summary.csv` |
 | `03_confidence_and_link.py` | Confidence × link × combiner on R̂ (two-stage CF) |
+| `04_joint_simplex.py` | Simplex (convex) combiner trained inside CF, two-stage vs. joint |
 | `confidence.py` | Confidence matrices: uniform, per-classifier, learned cell-level |
 | `combiners.py` | Logistic regression, ensemble selection, SUMMA |
 

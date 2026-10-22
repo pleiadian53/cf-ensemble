@@ -91,9 +91,32 @@ class CFEnsembleNet(nn.Module):
         if aggregator_type == 'weighted':
             self.w = nn.Parameter(torch.ones(m) / m)  # Start uniform
             self.b = nn.Parameter(torch.zeros(1))
+        elif aggregator_type == 'simplex':
+            # Convex combination of reconstructed probabilities: alpha = softmax(theta),
+            # nonnegative and summing to 1 (the inductive bias of ensemble selection)
+            self.theta = nn.Parameter(torch.zeros(m))
+            self.register_buffer('w', torch.ones(m) / m)
+            self.register_buffer('b', torch.zeros(1))
         else:  # mean aggregator (no parameters)
             self.register_buffer('w', torch.ones(m) / m)
             self.register_buffer('b', torch.zeros(1))
+    
+    def simplex_weights(self) -> torch.Tensor:
+        """alpha = softmax(theta) for the simplex aggregator."""
+        return torch.softmax(self.theta, dim=0)
+    
+    def aggregator_parameters(self) -> list:
+        """Trainable parameters of g (empty for the mean aggregator)."""
+        if self.aggregator_type == 'weighted':
+            return [self.w, self.b]
+        if self.aggregator_type == 'simplex':
+            return [self.theta]
+        return []
+    
+    def factor_parameters(self) -> list:
+        """Trainable factorization parameters: X, Y (and b_u, b_i for the logit link)."""
+        agg = {id(p) for p in self.aggregator_parameters()}
+        return [p for p in self.parameters() if id(p) not in agg]
     
     def scores(self, idx: Optional[torch.Tensor] = None, detach_instances: bool = False) -> torch.Tensor:
         """
@@ -141,6 +164,8 @@ class CFEnsembleNet(nn.Module):
         """
         if self.aggregator_type == 'mean':
             return torch.mean(R_hat_subset, dim=0)
+        elif self.aggregator_type == 'simplex':
+            return self.simplex_weights() @ R_hat_subset
         else:  # weighted
             logits = self.w @ R_hat_subset + self.b  # (n_subset,)
             return torch.sigmoid(logits)
@@ -169,6 +194,51 @@ class CFEnsembleNet(nn.Module):
         Z = self.scores(idx, detach_instances)
         return torch.sigmoid(Z) if self.link == 'logit' else Z
     
+    def supervised_loss(
+        self,
+        R_hat_labeled: torch.Tensor,
+        y_true: torch.Tensor,
+        use_class_weights: bool = True,
+        lambda_g: float = 0.0
+    ) -> torch.Tensor:
+        """Class-weighted BCE of the aggregated labeled columns (+ L2 on w if lambda_g > 0)."""
+        # Binary cross-entropy. The weighted aggregator uses the logit form, which
+        # is numerically stable; clamping probabilities at 1 - 1e-15 does nothing in
+        # float32 (it rounds to 1.0), so saturated sigmoids gave log(0) -> NaN.
+        if self.aggregator_type in ('mean', 'simplex'):
+            eps = 1e-7  # representable in float32
+            y_pred = torch.clamp(self.aggregate(R_hat_labeled), eps, 1 - eps)
+            bce = -(y_true * torch.log(y_pred) + (1 - y_true) * torch.log(1 - y_pred))
+        else:
+            logits = self.w @ R_hat_labeled + self.b
+            bce = nn.functional.binary_cross_entropy_with_logits(
+                logits, y_true, reduction='none'
+            )
+
+        # Apply class weighting if enabled
+        if use_class_weights:
+            n = len(y_true)
+            n_pos = torch.sum(y_true == 1).float()
+            n_neg = n - n_pos
+
+            # Compute class weights (inverse frequency)
+            if n_pos > 0 and n_neg > 0:
+                pos_weight = n / (2 * n_pos)
+                neg_weight = n / (2 * n_neg)
+                instance_weights = torch.where(y_true == 1, pos_weight, neg_weight)
+            else:
+                # Edge case: only one class present
+                instance_weights = torch.ones(n, device=y_true.device)
+
+            # Weighted average
+            sup_loss = torch.sum(instance_weights * bce) / torch.sum(instance_weights)
+        else:
+            # Standard unweighted average
+            sup_loss = torch.mean(bce)
+        if lambda_g > 0 and self.aggregator_type == 'weighted':
+            sup_loss = sup_loss + lambda_g * torch.sum(self.w ** 2)
+        return sup_loss
+
     def compute_loss(
         self,
         R: torch.Tensor,
@@ -248,41 +318,7 @@ class CFEnsembleNet(nn.Module):
             R_hat_labeled = self._reconstruct_subset(labeled_idx, not sup_updates_instances)
             y_true = labels[labeled_mask]
 
-            # Binary cross-entropy. The weighted aggregator uses the logit form, which
-            # is numerically stable; clamping probabilities at 1 - 1e-15 does nothing in
-            # float32 (it rounds to 1.0), so saturated sigmoids gave log(0) -> NaN.
-            if self.aggregator_type == 'mean':
-                eps = 1e-7  # representable in float32
-                y_pred = torch.clamp(self.aggregate(R_hat_labeled), eps, 1 - eps)
-                bce = -(y_true * torch.log(y_pred) + (1 - y_true) * torch.log(1 - y_pred))
-            else:
-                logits = self.w @ R_hat_labeled + self.b
-                bce = nn.functional.binary_cross_entropy_with_logits(
-                    logits, y_true, reduction='none'
-                )
-            
-            # Apply class weighting if enabled
-            if use_class_weights:
-                n = len(y_true)
-                n_pos = torch.sum(y_true == 1).float()
-                n_neg = n - n_pos
-                
-                # Compute class weights (inverse frequency)
-                if n_pos > 0 and n_neg > 0:
-                    pos_weight = n / (2 * n_pos)
-                    neg_weight = n / (2 * n_neg)
-                    instance_weights = torch.where(y_true == 1, pos_weight, neg_weight)
-                else:
-                    # Edge case: only one class present
-                    instance_weights = torch.ones(n, device=R.device)
-                
-                # Weighted average
-                sup_loss = torch.sum(instance_weights * bce) / torch.sum(instance_weights)
-            else:
-                # Standard unweighted average
-                sup_loss = torch.mean(bce)
-            if lambda_g > 0 and self.aggregator_type != 'mean':
-                sup_loss = sup_loss + lambda_g * torch.sum(self.w ** 2)
+            sup_loss = self.supervised_loss(R_hat_labeled, y_true, use_class_weights, lambda_g)
         else:
             sup_loss = torch.tensor(0.0, device=R.device)
         
@@ -321,7 +357,8 @@ class CFEnsemblePyTorchTrainer:
     lambda_reg : float, default=0.01
         Regularization strength
     aggregator_type : str, default='weighted'
-        Aggregator type ('mean' or 'weighted')
+        Aggregator type ('mean', 'weighted', or 'simplex': softmax weights over
+        classifiers, i.e. a convex combination like ensemble selection)
     max_epochs : int, default=500
         Maximum training epochs
     lr : float, default=0.01
@@ -348,6 +385,12 @@ class CFEnsemblePyTorchTrainer:
     link : str, default='identity'
         'logit' reconstructs R as sigmoid(X^T Y + b_u + b_i) with cross-entropy;
         b_u absorbs a classifier's overall shift, b_i an instance's positivity.
+    lr_g : float, optional
+        Learning rate for the aggregator g (default: ``lr``). The total loss is
+        dominated by reconstruction, so a shared schedule can leave g under-trained.
+    refit_g_steps : int, default=0
+        After training, freeze the factorization and fit g alone on the labeled
+        reconstructed columns for this many Adam steps (lr = ``lr_g`` or 0.05).
     device : str, default='auto'
         Device ('cpu', 'cuda', or 'auto')
     verbose : bool, default=True
@@ -397,6 +440,8 @@ class CFEnsemblePyTorchTrainer:
         sup_updates_instances: bool = True,
         lambda_g: float = 0.0,
         link: str = 'identity',
+        lr_g: Optional[float] = None,
+        refit_g_steps: int = 0,
         device: str = 'auto',
         verbose: bool = True,
         random_seed: Optional[int] = None
@@ -423,6 +468,8 @@ class CFEnsemblePyTorchTrainer:
         self.sup_updates_instances = sup_updates_instances
         self.lambda_g = lambda_g
         self.link = link
+        self.lr_g = lr_g
+        self.refit_g_steps = refit_g_steps
         self.verbose = verbose
         self.random_seed = random_seed
         
@@ -499,12 +546,17 @@ class CFEnsemblePyTorchTrainer:
         ).to(self.device)
         
         # Initialize optimizer
+        # Separate parameter groups so g can have its own learning rate
+        param_groups = [{'params': self.model.factor_parameters(), 'lr': self.lr}]
+        if self.model.aggregator_parameters():
+            param_groups.append({'params': self.model.aggregator_parameters(),
+                                 'lr': self.lr_g or self.lr})
         if self.optimizer_name == 'adam':
-            self.optimizer = optim.Adam(self.model.parameters(), lr=self.lr)
+            self.optimizer = optim.Adam(param_groups)
         elif self.optimizer_name == 'adamw':
-            self.optimizer = optim.AdamW(self.model.parameters(), lr=self.lr)
+            self.optimizer = optim.AdamW(param_groups)
         elif self.optimizer_name == 'sgd':
-            self.optimizer = optim.SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
+            self.optimizer = optim.SGD(param_groups, momentum=0.9)
         else:
             raise ValueError(f"Unknown optimizer: {self.optimizer_name}")
         
@@ -585,7 +637,28 @@ class CFEnsemblePyTorchTrainer:
         
         self.best_loss_ = best_loss
         
+        if self.refit_g_steps > 0:
+            self._refit_aggregator(labels, labeled_mask)
+        
         return self
+    
+    def _refit_aggregator(self, labels: 'torch.Tensor', labeled_mask: 'torch.Tensor') -> None:
+        """Fit g alone on the frozen labeled reconstructions (convex in w for 'weighted', in alpha for 'simplex')."""
+        agg_params = self.model.aggregator_parameters()
+        if not agg_params or torch.sum(labeled_mask) == 0:
+            return
+        labeled_idx = torch.where(labeled_mask)[0]
+        with torch.no_grad():
+            R_hat_labeled = self.model._reconstruct_subset(labeled_idx)
+        y_true = labels[labeled_mask]
+        opt = optim.Adam(agg_params, lr=self.lr_g or 0.05)
+        for _ in range(self.refit_g_steps):
+            opt.zero_grad()
+            loss = self.model.supervised_loss(R_hat_labeled, y_true, self.use_class_weights,
+                                              self.lambda_g)
+            loss.backward()
+            opt.step()
+        self.refit_loss_ = loss.item()
     
     def predict(self, R_new: Optional[np.ndarray] = None) -> np.ndarray:
         """
