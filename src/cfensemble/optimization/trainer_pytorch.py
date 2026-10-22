@@ -194,14 +194,42 @@ class CFEnsembleNet(nn.Module):
         Z = self.scores(idx, detach_instances)
         return torch.sigmoid(Z) if self.link == 'logit' else Z
     
+    def combiner_scores(self, R_hat_subset: torch.Tensor) -> torch.Tensor:
+        """Ranking scores of g: logits for 'weighted', the aggregate itself otherwise."""
+        if self.aggregator_type == 'weighted':
+            return self.w @ R_hat_subset + self.b
+        return self.aggregate(R_hat_subset)
+    
     def supervised_loss(
         self,
         R_hat_labeled: torch.Tensor,
         y_true: torch.Tensor,
         use_class_weights: bool = True,
-        lambda_g: float = 0.0
+        lambda_g: float = 0.0,
+        loss_type: str = 'bce',
+        pairwise_scale: float = 1.0,
+        max_negatives: int = 20000
     ) -> torch.Tensor:
-        """Class-weighted BCE of the aggregated labeled columns (+ L2 on w if lambda_g > 0)."""
+        """Supervised loss on the labeled columns (+ L2 on w if lambda_g > 0).
+        
+        'bce': class-weighted binary cross-entropy of g's output.
+        'pairwise': mean softplus(-scale * (s_pos - s_neg)) over positive/negative
+        pairs of combiner scores — a smooth AUC surrogate that targets ranking and
+        is balanced by construction. Negatives are subsampled to ``max_negatives``.
+        """
+        if loss_type == 'pairwise':
+            s = self.combiner_scores(R_hat_labeled)
+            s_pos, s_neg = s[y_true == 1], s[y_true == 0]
+            if len(s_pos) == 0 or len(s_neg) == 0:
+                return torch.tensor(0.0, device=y_true.device)
+            if len(s_neg) > max_negatives:
+                s_neg = s_neg[torch.randperm(len(s_neg), device=s.device)[:max_negatives]]
+            diff = pairwise_scale * (s_pos[:, None] - s_neg[None, :])
+            sup_loss = nn.functional.softplus(-diff).mean()
+            if lambda_g > 0 and self.aggregator_type == 'weighted':
+                sup_loss = sup_loss + lambda_g * torch.sum(self.w ** 2)
+            return sup_loss
+        
         # Binary cross-entropy. The weighted aggregator uses the logit form, which
         # is numerically stable; clamping probabilities at 1 - 1e-15 does nothing in
         # float32 (it rounds to 1.0), so saturated sigmoids gave log(0) -> NaN.
@@ -250,7 +278,9 @@ class CFEnsembleNet(nn.Module):
         use_class_weights: bool = True,
         normalize_recon: bool = False,
         sup_updates_instances: bool = True,
-        lambda_g: float = 0.0
+        lambda_g: float = 0.0,
+        sup_loss_type: str = 'bce',
+        pairwise_scale: float = 1.0
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
         Compute combined loss: ρ·L_recon + (1-ρ)·L_sup
@@ -318,7 +348,8 @@ class CFEnsembleNet(nn.Module):
             R_hat_labeled = self._reconstruct_subset(labeled_idx, not sup_updates_instances)
             y_true = labels[labeled_mask]
 
-            sup_loss = self.supervised_loss(R_hat_labeled, y_true, use_class_weights, lambda_g)
+            sup_loss = self.supervised_loss(R_hat_labeled, y_true, use_class_weights, lambda_g,
+                                            sup_loss_type, pairwise_scale)
         else:
             sup_loss = torch.tensor(0.0, device=R.device)
         
@@ -391,6 +422,13 @@ class CFEnsemblePyTorchTrainer:
     refit_g_steps : int, default=0
         After training, freeze the factorization and fit g alone on the labeled
         reconstructed columns for this many Adam steps (lr = ``lr_g`` or 0.05).
+    sup_loss : str, default='bce'
+        'pairwise' replaces cross-entropy with a pairwise ranking (AUC) surrogate on
+        g's scores: targets ordering, like ensemble selection, and is balanced by
+        construction. With the probability-valued simplex combiner, set
+        ``pairwise_scale`` (e.g. 20) so score differences are not vanishingly small.
+    pairwise_scale : float, default=1.0
+        Multiplier on score differences in the pairwise loss.
     device : str, default='auto'
         Device ('cpu', 'cuda', or 'auto')
     verbose : bool, default=True
@@ -442,6 +480,8 @@ class CFEnsemblePyTorchTrainer:
         link: str = 'identity',
         lr_g: Optional[float] = None,
         refit_g_steps: int = 0,
+        sup_loss: str = 'bce',
+        pairwise_scale: float = 1.0,
         device: str = 'auto',
         verbose: bool = True,
         random_seed: Optional[int] = None
@@ -470,6 +510,10 @@ class CFEnsemblePyTorchTrainer:
         self.link = link
         self.lr_g = lr_g
         self.refit_g_steps = refit_g_steps
+        if sup_loss not in ('bce', 'pairwise'):
+            raise ValueError(f"sup_loss must be 'bce' or 'pairwise', got {sup_loss!r}")
+        self.sup_loss = sup_loss
+        self.pairwise_scale = pairwise_scale
         self.verbose = verbose
         self.random_seed = random_seed
         
@@ -590,7 +634,9 @@ class CFEnsemblePyTorchTrainer:
                 self.use_class_weights,
                 self.normalize_recon,
                 self.sup_updates_instances,
-                self.lambda_g
+                self.lambda_g,
+                self.sup_loss,
+                self.pairwise_scale
             )
             loss.backward()
             self.optimizer.step()
@@ -655,7 +701,7 @@ class CFEnsemblePyTorchTrainer:
         for _ in range(self.refit_g_steps):
             opt.zero_grad()
             loss = self.model.supervised_loss(R_hat_labeled, y_true, self.use_class_weights,
-                                              self.lambda_g)
+                                              self.lambda_g, self.sup_loss, self.pairwise_scale)
             loss.backward()
             opt.step()
         self.refit_loss_ = loss.item()

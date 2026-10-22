@@ -23,6 +23,7 @@ moves to real, noisy, highly imbalanced data and asks one question:
 | [06_confirmation_preregistration.md](06_confirmation_preregistration.md) | Pre-registered confirmation of the two best CF configurations on fresh seeds |
 | [07_results_confirmation.md](07_results_confirmation.md) | Both hypotheses confirmed on fresh seeds (small effects); confidence type is dataset-dependent |
 | [08_results_joint_simplex.md](08_results_joint_simplex.md) | Selection inside CF via a softmax combiner fails: the BCE objective picks extreme-probability models; needs a ranking loss |
+| [09_results_ranking_alternating.md](09_results_ranking_alternating.md) | Ranking loss doesn't rescue the in-model simplex; alternating CF–selection fixes the 2% budget but not overall |
 
 ## Pipeline
 
@@ -41,6 +42,7 @@ benchmark_data.py ──▶ 01_generate_base_predictions.py ──▶ 02_compare
 | `02_compare_ensembles.py` | All ensemble methods on R; writes `results.csv`, `summary.csv` |
 | `03_confidence_and_link.py` | Confidence × link × combiner on R̂ (two-stage CF) |
 | `04_joint_simplex.py` | Simplex (convex) combiner trained inside CF, two-stage vs. joint |
+| `05_ranking_and_alternating.py`, `alternating.py` | Ranking-loss combiners; alternating CF–selection |
 | `confidence.py` | Confidence matrices: uniform, per-classifier, learned cell-level |
 | `combiners.py` | Logistic regression, ensemble selection, SUMMA |
 
