@@ -37,7 +37,7 @@ from sklearn.model_selection import StratifiedShuffleSplit
 sys.path.insert(0, str(Path(__file__).parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 from combiners import ensemble_selection, fit_lr  # noqa: E402
-from confidence import make_confidence  # noqa: E402
+from confidence import CONFIDENCE_KINDS, make_confidence  # noqa: E402
 from cfensemble.data import EnsembleData  # noqa: E402
 from cfensemble.optimization.trainer_pytorch import CFEnsemblePyTorchTrainer  # noqa: E402
 
@@ -53,7 +53,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--latent-dims", type=int, nargs="+", default=[4, 8])
     p.add_argument("--links", nargs="+", default=["identity", "logit"], choices=["identity", "logit"])
     p.add_argument("--confidence", nargs="+", default=["uniform", "classifier", "learned"],
-                   choices=["uniform", "classifier", "learned"])
+                   choices=CONFIDENCE_KINDS)
+    p.add_argument("--configs", nargs="+", default=None, metavar="CONF:LINK:D",
+                   help="exact configurations to run (overrides the confidence × link × d grid)")
     p.add_argument("--lambda-reg", type=float, default=0.01)
     p.add_argument("--max-epochs", type=int, default=3000)
     p.add_argument("--lr", type=float, default=0.01)
@@ -92,6 +94,12 @@ def main() -> None:
                      "pr_auc": average_precision_score(y[T], scores),
                      "roc_auc": roc_auc_score(y[T], scores), "seconds": round(seconds, 2), **cfg})
 
+    if args.configs:
+        configs = [(c, l, int(d)) for c, l, d in (s.split(":") for s in args.configs)]
+    else:
+        configs = list(itertools.product(args.confidence, args.links, args.latent_dims))
+    print(f"[configs] {configs}")
+
     for seed, frac in itertools.product(args.seeds, args.label_fracs):
         split = StratifiedShuffleSplit(n_splits=1, train_size=frac, random_state=seed)
         L, T = next(split.split(np.zeros(n), y))
@@ -103,18 +111,21 @@ def main() -> None:
         record("stacking", frac, seed, fit_lr(R[:, L].T, y[L], R[:, T].T), T, 0.0)
         record("ens_select", frac, seed, ensemble_selection(R[:, L], y[L]) @ R[:, T], T, 0.0)
 
-        for conf in args.confidence:
+        cache, conf_cache = {}, {}  # per split: learned reliability, C per kind
+        for conf, link, d in configs:
             t0 = time.time()
-            C = make_confidence(conf, R, y, L, seed)
+            if conf not in conf_cache:
+                conf_cache[conf] = make_confidence(conf, R, y, L, seed, cache)
+            C = conf_cache[conf]
             conf_s = time.time() - t0
-            for link, d in itertools.product(args.links, args.latent_dims):
-                t0 = time.time()
-                R_hat, epochs = factorize(args, R, C, d, link, seed)
-                fit_s = time.time() - t0 + conf_s
-                cfg = dict(confidence=conf, link=link, d=d, epochs=epochs)
-                record("cf_lr", frac, seed, fit_lr(R_hat[:, L].T, y[L], R_hat[:, T].T), T, fit_s, **cfg)
-                weights = ensemble_selection(R_hat[:, L], y[L])
-                record("cf_ens_select", frac, seed, weights @ R_hat[:, T], T, fit_s, **cfg)
+
+            t0 = time.time()
+            R_hat, epochs = factorize(args, R, C, d, link, seed)
+            fit_s = time.time() - t0 + conf_s
+            cfg = dict(confidence=conf, link=link, d=d, epochs=epochs)
+            record("cf_lr", frac, seed, fit_lr(R_hat[:, L].T, y[L], R_hat[:, T].T), T, fit_s, **cfg)
+            weights = ensemble_selection(R_hat[:, L], y[L])
+            record("cf_ens_select", frac, seed, weights @ R_hat[:, T], T, fit_s, **cfg)
 
         done = pd.DataFrame([r for r in rows if r["seed"] == seed and r["label_frac"] == frac])
         base = done[done.confidence.isna()] if "confidence" in done else done

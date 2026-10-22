@@ -20,6 +20,7 @@ moves to real, noisy, highly imbalanced data and asks one question:
 | [03_results_protein_homo_smoke.md](03_results_protein_homo_smoke.md) | Smoke-test results, prediction scorecard, labeled-point distortion diagnostic, bugs fixed |
 | [04_results_coffin_splice.md](04_results_coffin_splice.md) | COFFIN results: ensemble selection wins; why joint training fails; options |
 | [05_results_confidence_and_link.md](05_results_confidence_and_link.md) | Confidence weighting × logit link × combiner on R̂: CF reaches parity with ensemble selection |
+| [06_confirmation_preregistration.md](06_confirmation_preregistration.md) | Pre-registered confirmation of the two best CF configurations on fresh seeds |
 
 ## Pipeline
 

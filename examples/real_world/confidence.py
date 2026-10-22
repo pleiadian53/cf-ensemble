@@ -14,9 +14,13 @@ A classifier with low confidence everywhere stops shaping the latent space at al
                   so positives count (under heavy imbalance a classifier predicting ~0
                   everywhere otherwise looks reliable), and cross-fitted on L so the
                   labeled cells' confidences are out-of-sample, like the test cells'
+- ``classifier_shrunk``: q_u shrunk toward uniform, q̃_u = λ q_u + (1 − λ) with
+                  λ = n_pos / (n_pos + κ): with few labeled positives, per-classifier
+                  quality is noisy, so trust it less
+- ``combined``:   c_ui = q̃_u · rel_ui (shrunk classifier quality × cell reliability)
 """
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -31,11 +35,23 @@ def classifier_auc(R: np.ndarray, y: np.ndarray, idx: np.ndarray) -> np.ndarray:
     return np.array([roc_auc_score(y[idx], R[u, idx]) for u in range(R.shape[0])])
 
 
-def classifier_confidence(R: np.ndarray, y: np.ndarray, L: np.ndarray) -> np.ndarray:
-    """c_ui = q_u with q_u = max(AUC_u(L) − 0.5, 0), scaled so the best classifier gets 1."""
+SHRINK_KAPPA = 20  # prior strength, in labeled positives (pre-registered 2026-10-21)
+
+
+def classifier_quality(R: np.ndarray, y: np.ndarray, L: np.ndarray, shrink: bool = False) -> np.ndarray:
+    """q_u = max(AUC_u(L) − 0.5, 0), scaled so the best classifier gets 1; optionally shrunk."""
     q = np.clip(classifier_auc(R, y, L) - 0.5, 0.0, None)
     q = q / q.max() if q.max() > 0 else np.ones_like(q)
-    return np.repeat(np.maximum(q, MIN_CONFIDENCE)[:, None], R.shape[1], axis=1)
+    if shrink:
+        n_pos = int(y[L].sum())
+        lam = n_pos / (n_pos + SHRINK_KAPPA)
+        q = lam * q + (1 - lam)
+    return np.maximum(q, MIN_CONFIDENCE)
+
+
+def classifier_confidence(R: np.ndarray, y: np.ndarray, L: np.ndarray, shrink: bool = False) -> np.ndarray:
+    """c_ui = q_u, constant across instances."""
+    return np.repeat(classifier_quality(R, y, L, shrink)[:, None], R.shape[1], axis=1)
 
 
 def learned_confidence(
@@ -77,11 +93,24 @@ def learned_confidence(
     return np.maximum(C, MIN_CONFIDENCE)
 
 
-def make_confidence(kind: str, R: np.ndarray, y: np.ndarray, L: np.ndarray, seed: int) -> np.ndarray:
+CONFIDENCE_KINDS = ("uniform", "classifier", "learned", "classifier_shrunk", "combined")
+
+
+def make_confidence(kind: str, R: np.ndarray, y: np.ndarray, L: np.ndarray, seed: int,
+                    cache: Optional[dict] = None) -> np.ndarray:
+    """Build C of the given kind; ``cache`` (per split) reuses the expensive learned part."""
+    cache = {} if cache is None else cache
     if kind == "uniform":
         return np.ones_like(R)
     if kind == "classifier":
         return classifier_confidence(R, y, L)
-    if kind == "learned":
-        return learned_confidence(R, y, L, seed)
+    if kind == "classifier_shrunk":
+        return classifier_confidence(R, y, L, shrink=True)
+    if kind in ("learned", "combined"):
+        if "learned" not in cache:
+            cache["learned"] = learned_confidence(R, y, L, seed)
+        if kind == "learned":
+            return cache["learned"]
+        q = classifier_quality(R, y, L, shrink=True)
+        return np.maximum(q[:, None] * cache["learned"], MIN_CONFIDENCE)
     raise ValueError(f"unknown confidence {kind!r}")
