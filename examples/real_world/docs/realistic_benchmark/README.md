@@ -21,6 +21,7 @@ moves to real, noisy, highly imbalanced data and asks one question:
 | [04_results_coffin_splice.md](04_results_coffin_splice.md) | COFFIN results: ensemble selection wins; why joint training fails; options |
 | [05_results_confidence_and_link.md](05_results_confidence_and_link.md) | Confidence weighting × logit link × combiner on R̂: CF reaches parity with ensemble selection |
 | [06_confirmation_preregistration.md](06_confirmation_preregistration.md) | Pre-registered confirmation of the two best CF configurations on fresh seeds |
+| [07_results_confirmation.md](07_results_confirmation.md) | Both hypotheses confirmed on fresh seeds (small effects); confidence type is dataset-dependent |
 
 ## Pipeline
 
