@@ -378,7 +378,8 @@ class CFEnsembleTrainer:
     def predict(
         self,
         ensemble_data: Optional[EnsembleData] = None,
-        R_new: Optional[np.ndarray] = None
+        R_new: Optional[np.ndarray] = None,
+        C_new: Optional[np.ndarray] = None
     ) -> np.ndarray:
         """
         Make predictions using the fitted model.
@@ -391,6 +392,10 @@ class CFEnsembleTrainer:
             ensemble_data: EnsembleData instance (uses fitted Y if provided)
             R_new: New probability matrix for inductive prediction (m × n_new)
                    If provided, computes Y_new from R_new
+            C_new: Confidence weights for R_new (m × n_new), computed the same way as
+                   the weights used in training (for example by the same reliability
+                   model). If None, uniform weights are used, which matches training
+                   only if training also used uniform weights.
         
         Returns:
             predictions: Predicted probabilities (n,) or (n_new,)
@@ -428,8 +433,11 @@ class CFEnsembleTrainer:
             n_new = R_new.shape[1]
             Y_new = np.zeros((self.latent_dim, n_new))
             
-            # Use uniform confidence for new data
-            C_new = np.ones_like(R_new)
+            # Fold-in: the same weighted ridge solve ALS applies to every instance
+            if C_new is None:
+                C_new = np.ones_like(R_new)
+            elif C_new.shape != R_new.shape:
+                raise ValueError(f"C_new has shape {C_new.shape}, expected {R_new.shape}")
             
             Y_new = update_instance_factors(
                 self.X, R_new, C_new, self.lambda_reg

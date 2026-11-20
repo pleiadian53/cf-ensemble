@@ -208,11 +208,18 @@ class CFEnsembleNet(nn.Module):
         lambda_g: float = 0.0,
         loss_type: str = 'bce',
         pairwise_scale: float = 1.0,
-        max_negatives: int = 20000
+        max_negatives: int = 20000,
+        focal_gamma: float = 0.0
     ) -> torch.Tensor:
         """Supervised loss on the labeled columns (+ L2 on w if lambda_g > 0).
         
-        'bce': class-weighted binary cross-entropy of g's output.
+        'bce': class-weighted binary cross-entropy of g's output. With
+        ``focal_gamma`` > 0 each term is multiplied by the focal factor
+        (1 - p_t)^gamma, p_t = p if y = 1 else 1 - p, which down-weights examples
+        g already gets right (standard focal loss: the factor is differentiated).
+        The ALS trainer's aggregator uses the same factor as a per-step weight
+        without differentiating it, so the two agree in the weights, not exactly
+        in the gradient.
         'pairwise': mean softplus(-scale * (s_pos - s_neg)) over positive/negative
         pairs of combiner scores — a smooth AUC surrogate that targets ranking and
         is balanced by construction. Negatives are subsampled to ``max_negatives``.
@@ -242,6 +249,14 @@ class CFEnsembleNet(nn.Module):
             bce = nn.functional.binary_cross_entropy_with_logits(
                 logits, y_true, reduction='none'
             )
+
+        if focal_gamma > 0:
+            if self.aggregator_type in ('mean', 'simplex'):
+                p = y_pred
+            else:
+                p = torch.sigmoid(logits)
+            p_t = torch.where(y_true == 1, p, 1 - p)
+            bce = (1 - p_t) ** focal_gamma * bce
 
         # Apply class weighting if enabled
         if use_class_weights:
@@ -280,7 +295,8 @@ class CFEnsembleNet(nn.Module):
         sup_updates_instances: bool = True,
         lambda_g: float = 0.0,
         sup_loss_type: str = 'bce',
-        pairwise_scale: float = 1.0
+        pairwise_scale: float = 1.0,
+        focal_gamma: float = 0.0
     ) -> Tuple[torch.Tensor, Dict[str, float]]:
         """
         Compute combined loss: ρ·L_recon + (1-ρ)·L_sup
@@ -349,7 +365,8 @@ class CFEnsembleNet(nn.Module):
             y_true = labels[labeled_mask]
 
             sup_loss = self.supervised_loss(R_hat_labeled, y_true, use_class_weights, lambda_g,
-                                            sup_loss_type, pairwise_scale)
+                                            sup_loss_type, pairwise_scale,
+                                            focal_gamma=focal_gamma)
         else:
             sup_loss = torch.tensor(0.0, device=R.device)
         
@@ -403,6 +420,10 @@ class CFEnsemblePyTorchTrainer:
     use_class_weights : bool, default=True
         If True, weight instances by inverse class frequency in supervised loss
         Essential for imbalanced data to prevent majority class domination
+    focal_gamma : float, default=0.0
+        Focal-loss exponent for the 'bce' supervised loss (0 = plain cross-entropy,
+        2 = the usual focal loss); down-weights labeled instances g already
+        classifies confidently. Combines with class weighting.
     normalize_recon : bool, default=False
         If True, average (rather than sum) the reconstruction and regularization
         terms over the m·n entries, so ρ keeps its meaning as n grows. Recommended
@@ -636,7 +657,8 @@ class CFEnsemblePyTorchTrainer:
                 self.sup_updates_instances,
                 self.lambda_g,
                 self.sup_loss,
-                self.pairwise_scale
+                self.pairwise_scale,
+                self.focal_gamma
             )
             loss.backward()
             self.optimizer.step()
@@ -701,12 +723,14 @@ class CFEnsemblePyTorchTrainer:
         for _ in range(self.refit_g_steps):
             opt.zero_grad()
             loss = self.model.supervised_loss(R_hat_labeled, y_true, self.use_class_weights,
-                                              self.lambda_g, self.sup_loss, self.pairwise_scale)
+                                              self.lambda_g, self.sup_loss, self.pairwise_scale,
+                                              focal_gamma=self.focal_gamma)
             loss.backward()
             opt.step()
         self.refit_loss_ = loss.item()
     
-    def predict(self, R_new: Optional[np.ndarray] = None) -> np.ndarray:
+    def predict(self, R_new: Optional[np.ndarray] = None,
+                C_new: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Predict on instances.
         
@@ -715,6 +739,11 @@ class CFEnsemblePyTorchTrainer:
         R_new : array (m × n_new), optional
             New probability matrix for inductive prediction.
             If None, uses learned instance factors (transductive).
+        C_new : array (m × n_new), optional
+            Confidence weights for R_new, computed the same way as the weights used in
+            training. If None, uniform weights are used, which matches training only if
+            training also used uniform weights. Each new instance's factor is then the
+            weighted ridge solution y = (X C X^T + λI)^{-1} X C r.
         
         Returns:
         --------
@@ -742,10 +771,19 @@ class CFEnsemblePyTorchTrainer:
                 R_new_torch = torch.from_numpy(R_new).float().to(self.device)
                 m, n_new = R_new_torch.shape
                 
-                # Compute Y_new via least squares: Y_new = (X^T X + λI)^{-1} X^T R_new
                 X = self.model.X  # (d × m)
-                XtX = X @ X.T + self.lambda_reg * torch.eye(self.latent_dim, device=self.device)
-                Y_new = torch.linalg.solve(XtX, X @ R_new_torch)  # (d × n_new)
+                eye = torch.eye(self.latent_dim, device=self.device, dtype=X.dtype)
+                if C_new is None:
+                    # Uniform weights: one shared system, Y_new = (X X^T + λI)^{-1} X R_new
+                    Y_new = torch.linalg.solve(X @ X.T + self.lambda_reg * eye, X @ R_new_torch)
+                else:
+                    if C_new.shape != R_new.shape:
+                        raise ValueError(f"C_new has shape {C_new.shape}, expected {R_new.shape}")
+                    C_t = torch.from_numpy(C_new).to(X.dtype).to(self.device)
+                    # One system per instance: (X diag(c_i) X^T + λI) y_i = X diag(c_i) r_i
+                    A = torch.einsum('au,un,bu->nab', X, C_t, X) + self.lambda_reg * eye
+                    rhs = (X @ (C_t * R_new_torch)).T.unsqueeze(-1)
+                    Y_new = torch.linalg.solve(A, rhs).squeeze(-1).T  # (d × n_new)
                 
                 # Reconstruct and aggregate
                 R_hat_new = X.T @ Y_new  # (m × n_new)
