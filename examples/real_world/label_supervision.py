@@ -6,7 +6,7 @@ label must be label-blind, computed the way a test instance's vector is. Otherwi
 read-out is trained on one kind of vector and applied to another. The fold-in that makes
 vectors label-blind, and its derivation, are in fold_in.py.
 
-All arms use the confirmed ingredients (doc 07): the logit link with classifier and
+All arms use the confirmed ingredients (round 4): the logit link with classifier and
 instance biases, a label-informed confidence matrix C, ``normalize_recon``. Arms:
 
 - ``two_stage``: the confirmed factorization (rho = 1, labels only through C).
@@ -14,7 +14,7 @@ instance biases, a label-informed confidence matrix C, ``normalize_recon``. Arms
   test instances folded in from their predictions with their own confidence weights.
 - ``matched_joint`` (option 1): the PyTorch trainer with rho < 1 and stop-gradient on the
   labeled instance factors, so labels move X, b_u and g, never an instance vector; g gets
-  its own learning rate and a convex refit (it was under-trained in doc 04).
+  its own learning rate and a convex refit (it was under-trained in round 2).
 - ``label_row`` (option 2): the labels as one more row of R, with its own vector x_label
   and bias; a test label is the missing entry sigmoid(x_label . y_i + b_label + b_i).
   No separate aggregator. Labeled instances' vectors see their label-row entry, so this

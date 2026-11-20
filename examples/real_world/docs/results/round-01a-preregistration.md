@@ -1,4 +1,6 @@
-# Hypotheses and Pre-Registered Predictions
+# Round 1a — hypotheses and pre-registered predictions for rounds 1 and 2
+
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Companion to [round 1](round-01-protein-homo-smoke.md): the predictions below were written before rounds 1 and 2 ran, and those pages score them.*
 
 Written on 2026-10-20, before any results. Results docs will score these predictions.
 

@@ -1,7 +1,7 @@
 """
 Alternating CF–selection: greedy ensemble selection and label-steered factorization.
 
-Doc 08: a smooth in-model combiner trained with cross-entropy selects the wrong base
+Round 5: a smooth in-model combiner trained with cross-entropy selects the wrong base
 models, while greedy ensemble selection on R̂ works. This keeps the greedy selector and
 still lets labels steer the factorization:
 

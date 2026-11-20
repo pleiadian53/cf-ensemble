@@ -1,11 +1,13 @@
-# Pre-Registration: Confirmation Run for CF + Ensemble Selection
+# Round 4a — pre-registration of the confirmation run
+
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Companion to [round 4](round-04-confirmation.md), committed before that run.*
 
 **Written and committed 2026-10-21, before the run.** Results will go in a separate doc and are
 scored against this one without changes.
 
 ## Why
 
-Doc 05 compared about 24 CF configurations against raw ensemble selection on the same seeds that
+[Round 3](round-03-confidence-and-link.md) compared about 24 CF configurations against raw ensemble selection on the same seeds that
 were used to pick the best ones. Two configurations stood out; this run tests them on fresh seeds
 so the selection cannot flatter them.
 
@@ -22,10 +24,10 @@ secondary.
 ## Protocol
 
 - **Fresh seeds 5–14** (10 seeds) × label budgets 2%, 5%, 20% → **30 paired cells per dataset**.
-  Seeds 0–4 (used in doc 05) are excluded.
+  Seeds 0–4 (used in [round 3](round-03-confidence-and-link.md)) are excluded.
 - Same probability matrices R as before (`base_seed0`). Seeds vary the labeled/test split and the
   factorization initialization; the base classifiers are not retrained (a known limitation).
-- Everything else as in doc 05: two-stage factorization (ρ = 1), max 3,000 epochs, λ = 0.01,
+- Everything else as in [round 3](round-03-confidence-and-link.md): two-stage factorization (ρ = 1), max 3,000 epochs, λ = 0.01,
   ensemble selection with 50 greedy steps.
 
 ## Decision rule
@@ -47,6 +49,6 @@ Expected to reduce the losses at the 2% budget; any win here needs its own confi
 
 - H1 confirmed: about 45%. The doc-05 effect (+0.005, 9/9 cells) is small, and some of it is
   likely selection luck.
-- H2 confirmed: about 20%. In doc 05 it lost badly at 2% (−0.030), which a one-sided test over all
+- H2 confirmed: about 20%. In [round 3](round-03-confidence-and-link.md) it lost badly at 2% (−0.030), which a one-sided test over all
   budgets is unlikely to overcome.
 - Shrunk classifier confidence beats unshrunk classifier confidence at 2% on COFFIN.

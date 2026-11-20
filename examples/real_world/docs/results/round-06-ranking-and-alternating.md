@@ -1,11 +1,13 @@
-# Results: Ranking Loss and Alternating CF–Selection
+# Round 6 — ranking loss and alternating CF-selection
+
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Previous: [round 5](round-05-joint-simplex.md) · Per-seed results: [protein_homo](reports/round-06-protein_homo.csv), [coffin_splice](reports/round-06-coffin_splice.csv).*
 
 **Run:** 2026-10-21/22 on a RunPod A40 · **Script:** `05_ranking_and_alternating.py` · **Exploratory**
 (dev seeds: COFFIN 0–4, protein_homo 0–2) · **Output:** `output/benchmarks/<dataset>/ranking_alt_base0/`
 
 ## Question
 
-Doc 08 blamed the in-model simplex combiner's failure on its cross-entropy objective. Does a ranking
+[Round 5](round-05-joint-simplex.md) blamed the in-model simplex combiner's failure on its cross-entropy objective. Does a ranking
 objective fix it, and does alternating greedy selection with ranking-steered factorization beat
 post-hoc selection on $\hat{R}$?
 
@@ -39,14 +41,14 @@ Paired: alt_select ρ=0.9 vs. cf_ens_select on COFFIN −0.004 (n.s., p = 0.28);
 ## Findings
 
 1. **A ranking objective does not rescue the in-model simplex.** Jointly trained it is unchanged
-   (0.245 vs. 0.246 with cross-entropy, doc 08). It does help the two-stage simplex (+0.020), but that
+   (0.245 vs. 0.246 with cross-entropy, [round 5](round-05-joint-simplex.md)). It does help the two-stage simplex (+0.020), but that
    still trails greedy selection by about 0.04. The issue is not only the loss: smooth softmax weights
    fitted on 10–104 positives are less robust than greedy, discrete PR-AUC selection.
 2. **Alternating CF–selection is the best in-loop method and fixes the low-budget weakness.** At 2% on
    COFFIN, where post-hoc selection on $\hat{R}$ is unstable (0.245), alt_select reaches 0.270. It gives
    that back at 5% and 20%.
 3. **Overall, label-steered factorization still does not beat two-stage CF + post-hoc selection**, the
-   method confirmed in doc 07.
+   method confirmed in [round 4](round-04-confirmation.md).
 
 ## Implications
 

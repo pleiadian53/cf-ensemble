@@ -1,6 +1,8 @@
-# Results: Pre-Registered Confirmation
+# Round 4 — pre-registered confirmation
 
-**Run:** 2026-10-21 on a RunPod A40 · **Pre-registration:** [06](06_confirmation_preregistration.md)
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Pre-registration: [round 4a](round-04a-preregistration.md) · Previous: [round 3](round-03-confidence-and-link.md) · Next: [round 5](round-05-joint-simplex.md) · Per-seed results: [protein_homo](reports/round-04-protein_homo.csv), [coffin_splice](reports/round-04-coffin_splice.csv).*
+
+**Run:** 2026-10-21 on a RunPod A40 · **Pre-registration:** [round 4a](round-04a-preregistration.md)
 (committed `bcdfb0c` before the run) · **Output:** `output/benchmarks/<dataset>/confidence_link_base0_confirm/`
 · Fresh seeds 5–14 × budgets 2/5/20% = 30 paired cells per dataset
 
@@ -70,7 +72,7 @@ right confidence type.
 - **Robustness to the base layer:** every run reuses one set of base classifiers (`base_seed0`). The next
   confirmation should retrain them on new D_base / D_ens splits.
 - **Novelty of the combiner:** ensemble selection is applied after the fact. Building the selection
-  bias into CF itself is the subject of `04_joint_simplex.py` (results doc 08).
+  bias into CF itself is the subject of `04_joint_simplex.py` ([round 5](round-05-joint-simplex.md)).
 - **Choosing the confidence type without peeking:** it is picked per dataset here. A principled rule
   (for example, by the number of labeled positives or base-model strength), or choosing it on L by
   cross-validation, is needed before this is a usable method.

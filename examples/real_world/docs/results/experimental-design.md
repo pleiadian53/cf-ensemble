@@ -1,4 +1,6 @@
-# Experimental Design
+# Experimental design
+
+*The design every round of [the results ledger](index.md) shares: datasets, the two-level split, base classifiers, methods and metrics. Later rounds add methods; the data, splits and metrics stay as described here.*
 
 ## Datasets
 
@@ -75,7 +77,7 @@ test uses $d = 20 \gt m = 11$ and is only a pipeline check; real runs sweep $d \
 Each classifier factor $x_u$ is fitted from $n$ observations, but each instance factor $y_i$
 from only $m \approx 11$. The low-rank bottleneck is what makes the model denoise, so
 anything that adds flexibility per instance (larger $d$, more expressive interaction
-functions) needs a matching constraint. See [02_hypotheses_and_predictions.md](02_hypotheses_and_predictions.md).
+functions) needs a matching constraint. See [the pre-registration of rounds 1 and 2](round-01a-preregistration.md).
 
 ## Metrics
 
@@ -83,10 +85,10 @@ PR-AUC (average precision) is primary under heavy imbalance; ROC-AUC is reported
 Each (budget, seed) cell draws a fresh stratified L/T split; results report mean ± std
 over seeds.
 
-## Planned extensions
+## Extensions planned at the start, and where they went
 
-- Confidence ablation: certainty $\vert r - 0.5 \vert$ vs. uniform weights
-- Stop-gradient variant: supervision updates $X$ and $g$, not the labeled $y_i$
-- Baselines: Caruana greedy ensemble selection; Spectral Meta-Learner (label-free)
-- Logistic link with biases, $\hat{r}_ {ui} = \sigma(x_u^\top y_i + b_u + b_i)$, fitted with cross-entropy
-- Amortized instance factors $y_i = f(\text{features}_ i)$
+- Confidence ablation, certainty $\vert r - 0.5 \vert$ against uniform weights: [round 1](round-01-protein-homo-smoke.md); later replaced by label-informed confidence in [round 3](round-03-confidence-and-link.md).
+- Stop-gradient variant, in which supervision updates $X$ and $g$ but not the labeled $y_i$: [rounds 1](round-01-protein-homo-smoke.md) and [2](round-02-coffin-splice.md).
+- Baselines, Caruana greedy ensemble selection and the label-free Spectral Meta-Learner: [rounds 1](round-01-protein-homo-smoke.md) and [2](round-02-coffin-splice.md).
+- Logistic link with biases, $\hat{r}_ {ui} = \sigma(x_u^\top y_i + b_u + b_i)$, fitted with cross-entropy: [round 3](round-03-confidence-and-link.md), part of the confirmed method.
+- Amortized instance factors $y_i = f(\text{features}_ i)$: still open.

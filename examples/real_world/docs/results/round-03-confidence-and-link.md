@@ -1,4 +1,6 @@
-# Results: Confidence Weighting, Logistic Link, and Combiners on R̂
+# Round 3 — confidence weighting, logistic link and combiners on R̂
+
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Previous: [round 2](round-02-coffin-splice.md) · Next: [round 4](round-04-confirmation.md) · Per-seed results: [protein_homo](reports/round-03-protein_homo.csv), [coffin_splice](reports/round-03-coffin_splice.csv).*
 
 **Run:** 2026-10-21 on a RunPod A40 · **Script:** `03_confidence_and_link.py` ·
 **Output:** `output/benchmarks/<dataset>/confidence_link_base0/` · COFFIN 5 seeds, protein_homo 3 seeds
@@ -31,7 +33,7 @@ confidence), never the reconstruction target.
 | cf_ens_select · uniform · logit · d=4 | 0.265 | 0.289 | 0.291 | 0.282 |
 | cf_lr · classifier · logit · d=8 | 0.257 | 0.271 | 0.277 | 0.268 |
 | stacking on raw R | 0.253 | 0.268 | 0.275 | 0.265 |
-| two_stage (doc 04: uniform · identity · LR) | 0.251 | 0.265 | 0.268 | 0.261 |
+| two_stage ([round 2](round-02-coffin-splice.md): uniform · identity · LR) | 0.251 | 0.265 | 0.268 | 0.261 |
 
 Paired against raw `ens_select` over all 15 seed × budget cells, **no CF configuration is
 significantly better**. The best (classifier · identity · d=8) is −0.004 (Wilcoxon p = 0.49); the
@@ -73,7 +75,7 @@ identity (0.893 vs 0.889 averaged over configurations).
    gives the best configuration on protein_homo (13–130 positives, strong base models).
 4. **The 2% budget is where CF loses on COFFIN.** With 10 positives, per-classifier quality and the
    selection on $\hat{R}$ are both noisy; raw ensemble selection is more robust there.
-5. CF has moved from "plain-average level" (doc 04) to **parity with the strongest baseline**, with a
+5. CF has moved from "plain-average level" ([round 2](round-02-coffin-splice.md)) to **parity with the strongest baseline**, with a
    possible small win where base models are strong. It does not yet beat ensemble selection robustly.
 
 ## Next steps

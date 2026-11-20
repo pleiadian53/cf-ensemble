@@ -1,11 +1,13 @@
-# Results: Selection Built Into CF (Joint Simplex Combiner)
+# Round 5 — selection built into CF, the joint simplex combiner
+
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Previous: [round 4](round-04-confirmation.md) · Next: [round 6](round-06-ranking-and-alternating.md) · Per-seed results: [protein_homo](reports/round-05-protein_homo.csv), [coffin_splice](reports/round-05-coffin_splice.csv).*
 
 **Run:** 2026-10-21 on a RunPod A40 · **Script:** `04_joint_simplex.py` · **Exploratory** (dev seeds:
 COFFIN 0–4, protein_homo 0–2) · **Output:** `output/benchmarks/<dataset>/joint_simplex_base0/`
 
 ## Question
 
-Docs 05 and 07 show that CF helps when ensemble selection is applied to $\hat{R}$ *after* the
+[Rounds 3](round-03-confidence-and-link.md) and [4](round-04-confirmation.md) show that CF helps when ensemble selection is applied to $\hat{R}$ *after* the
 factorization. Can the selection bias live inside the model instead? The combiner becomes
 $g(\hat{r}_ {\cdot i}) = \sum_u \alpha_u \hat{r}_ {ui}$ with $\alpha = \text{softmax}(\theta)$: nonnegative,
 summing to one. Training uses stop-gradient (supervision updates $X$, $b_u$ and $\alpha$, never the

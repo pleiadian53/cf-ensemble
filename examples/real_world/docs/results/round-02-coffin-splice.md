@@ -1,4 +1,6 @@
-# Results: COFFIN Human Acceptor Splice Sites
+# Round 2 — COFFIN human acceptor splice sites
+
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Previous: [round 1](round-01-protein-homo-smoke.md) · Next: [round 3](round-03-confidence-and-link.md) · Per-seed results: [reports/round-02-coffin_splice.csv](reports/round-02-coffin_splice.csv), and the protein_homo rerun with an L2 penalty on g, [reports/round-02-protein_homo-lambda_g.csv](reports/round-02-protein_homo-lambda_g.csv).*
 
 **Run:** 2026-10-21 on a RunPod A40 (no cheaper GPU was available) · **Output:**
 `output/benchmarks/coffin_splice/` · **Seeds:** 5 per label budget

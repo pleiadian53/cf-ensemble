@@ -1,7 +1,7 @@
 """
 Step 5: Ranking objectives for selection inside CF (exploratory; dev seeds).
 
-Doc 08 showed the in-model simplex combiner fails because cross-entropy on averaged
+Round 5 showed the in-model simplex combiner fails because cross-entropy on averaged
 probabilities rewards extreme-probability models. Here the supervised term is a pairwise
 AUC surrogate instead, and greedy selection is kept in the loop:
 

@@ -1,15 +1,15 @@
 """
 Step 4: Build the selection bias into CF itself — a jointly trained simplex combiner.
 
-Doc 05 showed CF reaching parity with ensemble selection only when ensemble selection
+Round 3 showed CF reaching parity with ensemble selection only when ensemble selection
 was applied *after* the factorization. Here the combiner is part of the model:
 g(r̂_i) = Σ_u α_u r̂_ui with α = softmax(θ) (nonnegative, sums to 1), trained with the
-factorization. The two optimizer failures diagnosed in doc 04 are addressed:
+factorization. The two optimizer failures diagnosed in round 2 are addressed:
 - stop-gradient: supervision updates X, b_u and g, never the labeled y_i / b_i
 - g gets its own learning rate, and a final refit on the frozen reconstruction
 
 Methods per confidence × link × d (exploratory; dev seeds):
-- cf_ens_select       two-stage factorization, post-hoc ensemble selection on R̂ (doc 05)
+- cf_ens_select       two-stage factorization, post-hoc ensemble selection on R̂ (round 3)
 - two_stage_simplex   ρ=1 factorization, then the simplex g fitted on R̂ (refit only)
 - joint_simplex_sg    ρ<1: supervision shapes X, b_u and α jointly
 - joint_lr_sg         same with the logistic g (does the optimizer fix rescue it?)

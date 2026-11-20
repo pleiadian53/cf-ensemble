@@ -1,4 +1,6 @@
-# Results: Smoke Test on `protein_homo`
+# Round 1 — smoke test on protein_homo
+
+*Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Predictions: [round 1a](round-01a-preregistration.md) · Next: [round 2](round-02-coffin-splice.md) · Per-seed results: [reports/round-01-protein_homo.csv](reports/round-01-protein_homo.csv).*
 
 **Run:** 2026-10-20/21 on a RunPod A40 · **Data:** KDD Cup 2004 protein homology, 145,751 rows,
 0.889% positive · **Output:** `output/benchmarks/protein_homo/` (`results.csv`, `summary.csv`)

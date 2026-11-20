@@ -1,9 +1,9 @@
 """
 Step 6: Can the labels shape the factorization without a train/test mismatch?
 
-Doc 04 found that letting labels into the factorization failed twice over: without
+Round 2 found that letting labels into the factorization failed twice over: without
 stop-gradient the labeled columns bend toward their labels; with it the joint g was
-under-trained. Doc 07 confirmed a two-stage method instead (rho = 1, logit link, labels
+under-trained. Round 4 confirmed a two-stage method instead (rho = 1, logit link, labels
 only through the confidence C, ensemble selection on R_hat). This experiment rebuilds the
 label-supervised variants on the confirmed ingredients and adds inductive arms, so each
 can be compared with the confirmed method on the same splits (see label_supervision.py):
