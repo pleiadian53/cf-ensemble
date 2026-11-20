@@ -3,7 +3,7 @@
 *Part of [the results ledger](index.md), which holds the standing verdict, the rules and the settings every round shares. Pre-registration: [round 4a](round-04a-preregistration.md) · Previous: [round 3](round-03-confidence-and-link.md) · Next: [round 5](round-05-joint-simplex.md) · Per-seed results: [protein_homo](reports/round-04-protein_homo.csv), [coffin_splice](reports/round-04-coffin_splice.csv).*
 
 **Run:** 2026-10-21 on a RunPod A40 · **Pre-registration:** [round 4a](round-04a-preregistration.md)
-(committed `bcdfb0c` before the run) · **Output:** `output/benchmarks/<dataset>/confidence_link_base0_confirm/`
+(committed `42eb8ff` before the run) · **Output:** `output/benchmarks/<dataset>/confidence_link_base0_confirm/`
 · Fresh seeds 5–14 × budgets 2/5/20% = 30 paired cells per dataset
 
 ## Primary hypotheses
