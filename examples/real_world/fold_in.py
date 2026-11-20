@@ -27,8 +27,8 @@ Logit link (cross-entropy reconstruction of sigmoid(x_u^T y_i + b_u + b_i)), per
 
 This is an L2-penalized logistic regression with fractional targets r_ui, one data point per
 classifier, with the instance bias b_i as an intercept and b_u as a fixed offset. It has no
-closed form; it is convex, and Newton's method solves it in a few steps. Gradients pass
-through the unrolled Newton steps.
+closed form; it is convex, and Newton's method with a backtracking line search solves it
+in a few steps. Gradients come from one differentiable Newton step at the solution.
 
 The penalty weight ``lam`` must match how the trainer weights reconstruction against the
 penalty for one instance. In ``CFEnsemblePyTorchTrainer`` the penalty sits inside the
@@ -42,6 +42,7 @@ m the number of classifiers, n the number of instances folded in.
 from typing import Optional, Tuple
 
 import torch
+import torch.nn.functional as F
 
 
 def fold_in_identity(
@@ -65,9 +66,18 @@ def fold_in_identity(
 
 def fold_in_logit(
     X: torch.Tensor, b_u: torch.Tensor, R: torch.Tensor, C: Optional[torch.Tensor] = None,
-    lam: float = 0.01, n_steps: int = 25, tol: float = 1e-8,
+    lam: float = 0.01, n_steps: int = 50, tol: float = 1e-8, max_halvings: int = 30,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
-    """Instance vectors and instance biases for the logit link, by batched Newton steps.
+    """Instance vectors and instance biases for the logit link, by damped Newton steps.
+
+    Each instance's problem is convex, but a full Newton step from zero can overshoot badly
+    when the factors or the classifier biases are large (seen after label-supervised
+    refinement: parameters of order 1e3 and no convergence). Each step is therefore damped
+    by a per-instance backtracking line search (Armijo condition): the step length is
+    halved, for each instance separately, until its objective decreases enough. The step
+    iterations run without gradient tracking; one final full Newton step is then taken with
+    gradients, which at the optimum gives the exact (implicit-function) derivative of the
+    solution with respect to X and b_u, without storing the iterations.
 
     Parameters
     ----------
@@ -77,6 +87,7 @@ def fold_in_logit(
     C : (m, n) confidence weights, or None for uniform.
     lam : the penalty on y_i and b_i (the trainer's ``lambda_reg``).
     n_steps : maximum Newton steps; ``tol`` stops early once every step is tiny.
+    max_halvings : maximum step halvings per line search.
 
     Returns
     -------
@@ -90,16 +101,44 @@ def fold_in_logit(
     Xa = torch.cat([X, torch.ones(1, m, dtype=X.dtype, device=X.device)], dim=0)  # (d+1, m)
     offset = b_u.reshape(m, 1)
     eye = torch.eye(d + 1, dtype=X.dtype, device=X.device)
-    theta = torch.zeros(d + 1, n, dtype=X.dtype, device=X.device)
-    for _ in range(n_steps):
+
+    def objective(theta):  # per-instance objective, shape (n,)
+        Z = Xa.T @ theta + offset
+        bce = F.binary_cross_entropy_with_logits(Z, R, reduction='none')
+        return (C * bce).sum(dim=0) + lam * (theta ** 2).sum(dim=0)
+
+    def newton_step(theta):
         P = torch.sigmoid(Xa.T @ theta + offset)  # (m, n)
         grad = Xa @ (C * (P - R)) + 2 * lam * theta  # (d+1, n)
         Wt = C * P * (1 - P)  # (m, n) Newton weights
         H = torch.einsum('au,un,bu->nab', Xa, Wt, Xa) + 2 * lam * eye  # (n, d+1, d+1)
-        step = torch.linalg.solve(H, grad.T.unsqueeze(-1)).squeeze(-1).T  # (d+1, n)
-        theta = theta - step
-        if step.detach().abs().max() < tol:
-            break
+        return torch.linalg.solve(H, grad.T.unsqueeze(-1)).squeeze(-1).T, grad  # (d+1, n)
+
+    # 1. Solve without gradient tracking: damped Newton with a per-instance line search.
+    #    Near the optimum the decrease falls below floating-point resolution, so the
+    #    Armijo test allows a few ulps of the objective.
+    slack = 8 * torch.finfo(X.dtype).eps
+    with torch.no_grad():
+        theta = torch.zeros(d + 1, n, dtype=X.dtype, device=X.device)
+        for _ in range(n_steps):
+            step, grad = newton_step(theta)
+            f0 = objective(theta)
+            slope = (grad * step).sum(dim=0)  # directional decrease, >= 0 (H is pos. def.)
+            t = torch.ones(n, dtype=X.dtype, device=X.device)
+            for _ in range(max_halvings):
+                ok = objective(theta - t * step) <= f0 - 1e-4 * t * slope + slack * f0.abs()
+                if bool(ok.all()):
+                    break
+                t = torch.where(ok, t, t / 2)
+            theta = theta - t * step
+            if (t * step).abs().max() < tol:
+                break
+
+    # 2. One full Newton step from the solution, with gradients. At the optimum the step is
+    #    ~0, and its derivative with respect to X and b_u is the implicit-function-theorem
+    #    derivative of the minimizer: d theta*/dX = -H^{-1} d(grad)/dX.
+    if X.requires_grad or b_u.requires_grad or R.requires_grad or C.requires_grad:
+        theta = theta - newton_step(theta)[0]
     return theta[:d], theta[d:]
 
 

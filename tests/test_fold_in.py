@@ -144,3 +144,17 @@ def test_pytorch_focal_gamma_is_used():
     focal = net.supervised_loss(R_hat, y, focal_gamma=2.0)
     assert focal < plain  # every focal factor is below 1
     torch.testing.assert_close(net.supervised_loss(R_hat, y, focal_gamma=0.0), plain)
+
+
+def test_logit_converges_with_large_factors(problem):
+    """Large factors and classifier biases (as after label-supervised refinement) used to make
+    undamped Newton diverge; the damped version still reaches the minimum."""
+    X, b_u, R, C = problem
+    X, b_u = 4.0 * X, 8.0 * b_u + 3.0
+    Y, b_i = fold_in_logit(X, b_u, R, C, LAM)
+    theta = torch.cat([Y, b_i]).clone().requires_grad_()
+    Z = X.T @ theta[:D] + b_u + theta[D:]
+    obj = (C * torch.nn.functional.binary_cross_entropy_with_logits(Z, R, reduction='none')).sum() \
+        + LAM * (theta ** 2).sum()
+    obj.backward()
+    assert theta.grad.abs().max() < 1e-6
